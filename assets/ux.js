@@ -299,10 +299,9 @@
     var key = routeParts()[0] || "home";
     $$(".tabbar [data-r]").forEach(function (a) { a.classList.toggle("on", a.dataset.r === key); });
     var l = document.getElementById("tbLeagues");
-    if (l) l.classList.toggle("on", ["league", "team", "player", "match"].indexOf(key) > -1);
+    if (l) l.classList.toggle("on", ["leagues", "league", "team", "player", "match"].indexOf(key) > -1);
   };
   var tbL = document.getElementById("tbLeagues"), tbS = document.getElementById("tbSearch");
-  if (tbL) tbL.addEventListener("click", function () { var b = $("#leaguesBtn"); if (b) b.click(); });
   if (tbS) tbS.addEventListener("click", function () { var b = $("#searchBtn"); if (b) b.click(); });
 
   var nav = $(".gnav");

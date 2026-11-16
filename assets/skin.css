@@ -177,7 +177,7 @@ h1.title{font-size:24px;line-height:1.15;font-weight:800}
 /* ===== v5: wordmark, 4-tab bar, league tiles, section tabs ===== */
 .logo{gap:2px;margin-right:16px}
 .logo span{font-size:22px;font-weight:800;letter-spacing:-.025em;line-height:1}
-.tabbar{grid-template-columns:repeat(4,1fr)}
+.tabbar{grid-template-columns:repeat(3,1fr)}
 
 #fly-leagues .flyout-in{display:block;max-width:560px;padding:16px var(--gutter) 20px}
 #fly-leagues .flyout-in>div:not(:first-child){display:none}
@@ -196,3 +196,63 @@ h1.title{font-size:24px;line-height:1.15;font-weight:800}
   .localnav .tabs a{display:block;text-align:center;padding:11px 4px;border-radius:10px;background:var(--bg-elev);box-shadow:none;font-size:13.5px;font-weight:600;color:var(--text-2)}
   .localnav .tabs a.on{background:var(--text);color:var(--bg-elev);box-shadow:none}
 }
+
+/* ===== v6: leagues page ===== */
+.lg{padding-top:20px}
+.lg-title{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:4px 2px 16px}
+.lg-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border-radius:24px;background:var(--bg-elev);border:1px solid var(--line);color:var(--text-3)}
+.lg-search svg{width:20px;height:20px;flex:none}
+.lg-search input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:16px;color:var(--text)}
+.lg-search input::placeholder{color:var(--text-3)}
+.lg-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:28px 4px 12px}
+.lg-h h2{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.lg-a{font-size:14px;font-weight:500;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.lg-row{display:flex;align-items:center;gap:8px;min-height:60px;margin-bottom:8px;padding:6px 10px 6px 16px;border-radius:18px;background:var(--bg-elev)}
+.lg-link{flex:1;min-width:0;display:flex;align-items:center;gap:16px;min-height:48px;font-size:16px;font-weight:500}
+.lg-link img,.lg-gh img{width:30px;height:30px;object-fit:contain;flex:none}
+.lg-link span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-btn{flex:none;padding:10px 22px;border-radius:20px;background:var(--fill-2);color:var(--accent);font-size:15px;font-weight:700}
+.lg-btn:active{background:var(--fill)}
+.lg-btn.rm{color:var(--loss)}
+.lg-grp{margin-bottom:8px;border-radius:18px;background:var(--bg-elev);overflow:hidden}
+.lg-gh{display:flex;align-items:center;gap:16px;width:100%;min-height:64px;padding:8px 16px;text-align:left;font-size:17px}
+.lg-gh b{flex:1;font-weight:700}
+.chev{width:18px;height:18px;color:var(--text-3);transition:transform .25s}
+.chev.up{transform:rotate(180deg)}
+.lg-sub{padding:0 8px 8px}
+.lg-sub .lg-row{background:var(--bg-sunk);margin-bottom:6px}
+.lg-empty{padding:24px;text-align:center;color:var(--text-2);font-size:14px}
+
+/* ===== v7: section tabs = horizontal scroll row ===== */
+@media(max-width:640px){
+  .localnav{position:sticky;top:var(--nav-h);z-index:50;margin:0 calc(var(--gutter) * -1) var(--gap);padding:0;border:0;border-bottom:1px solid var(--line-2);background:var(--bg-elev)}
+  .localnav-in{display:block;height:auto;padding:0}
+  .localnav .tabs{display:flex!important;gap:2px;margin:0;padding:0 8px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  .localnav .tabs::-webkit-scrollbar{display:none}
+  .localnav .tabs a{flex:none;scroll-snap-align:center;padding:14px 12px;border-radius:0;background:none;box-shadow:none;font-size:15px;font-weight:600;color:var(--text-2);white-space:nowrap}
+  .localnav .tabs a.on{background:none;color:var(--text);box-shadow:inset 0 -3px 0 var(--accent)}
+}
+
+/* ===== v8: stats league chips = horizontal scroll with logos ===== */
+#cpills{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;overflow-y:hidden;margin:0 -16px;padding:0 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#cpills::-webkit-scrollbar{display:none}
+#cpills .pill{flex:none;gap:8px;height:40px;padding:0 16px 0 12px;font-size:14px;font-weight:600}
+#cpills .pill:first-child{padding-left:14px}
+#cpills .pl-logo{width:22px;height:22px;object-fit:contain;flex:none;border-radius:50%;background:#fff;padding:2px}
+#cpills .pl-ic{width:18px;height:18px;flex:none}
+
+/* ===== v9: stats = compact preview cards -> full list ===== */
+.s-chips{display:flex;gap:8px;overflow-x:auto;margin:0 -16px 4px;padding:0 16px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.s-chips::-webkit-scrollbar{display:none}
+.s-chips .pill{flex:none;height:38px;padding:0 16px;background:var(--bg-elev);font-weight:600}
+.s-h{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:20px 4px 10px}
+.scard{display:block}
+.scard .card-h{justify-content:space-between;padding:16px 16px 6px;font-size:16px}
+.scard .card-h small{margin-left:8px;font-size:12px;font-weight:500}
+.scard .card-h .go{width:18px;height:18px;margin-left:auto;color:var(--text-3);flex:none}
+.scard .lead{padding:8px 16px}
+.scard .lead:hover{padding-left:16px}
+.scard .lead .avatar{width:40px;height:40px}
+.lead .v.top{min-width:38px;padding:3px 12px;border-radius:14px;background:var(--accent);color:#fff;text-align:center}
+.s-back{display:inline-flex;align-items:center;gap:6px;margin:0 4px 12px;font-size:15px;font-weight:600;color:var(--accent)}
+.s-back svg{width:18px;height:18px}

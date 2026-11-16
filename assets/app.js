@@ -168,7 +168,7 @@ const posRu = (p) => POS_RU[posGroup(p)];
 let refreshTimer = null, charts = [];
 function killCharts() { charts.forEach((c) => c.destroy()); charts = []; }
 async function route() {
-  clearInterval(refreshTimer); killCharts(); closeFly();
+  clearInterval(refreshTimer); killCharts(); closeFly(); document.documentElement.style.removeProperty("--home"); document.documentElement.style.removeProperty("--away");
   const [path, qs] = location.hash.replace(/^#\/?/, "").split("?");
   const parts = path.split("/").filter(Boolean);
   const params = new URLSearchParams(qs || "");
@@ -180,7 +180,8 @@ async function route() {
     else if (parts[0] === "team") await viewTeam(parts[1], parts[2] || "overview");
     else if (parts[0] === "player") await viewPlayer(parts[1]);
     else if (parts[0] === "match") await viewMatch(parts[1], parts[2] || "facts");
-    else if (parts[0] === "stats") await viewStats(params.get("c") || "ALL");
+    else if (parts[0] === "leagues") viewLeagues();
+    else if (parts[0] === "stats") await viewStats(params.get("c") || "ALL", params.get("s"));
     else if (parts[0] === "compare") await viewCompare(params);
     else await viewHome(params);
   } catch (e) {
@@ -673,9 +674,41 @@ function halfPitchShots(shots) {
 document.addEventListener("mouseover", (e) => { const s = e.target.closest("[data-tip]"); const tip = $("#tip"); if (!s) { tip.classList.remove("show"); return; } tip.innerHTML = s.dataset.tip; tip.classList.add("show"); const r = s.getBoundingClientRect(); tip.style.left = Math.min(innerWidth - 270, r.left + r.width / 2 + 10) + "px"; tip.style.top = r.top - 10 - tip.offsetHeight + "px"; });
 
 /* ================= MATCH ================= */
+/* ---------------- team colors (match page stats) ---------------- */
+const TEAM_COLORS = [
+  [/arsenal/, "#EF0107"], [/aston villa/, "#7A263A"], [/bournemouth/, "#DA291C"], [/brentford/, "#E30613"], [/brighton/, "#0057B8"], [/burnley/, "#6C1D45"], [/chelsea/, "#034694"], [/crystal palace/, "#1B458F"], [/everton/, "#003399"], [/fulham/, "#2B2B2B"], [/leeds/, "#E6B800"], [/liverpool/, "#C8102E"], [/man(chester)? ?c/, "#6CABDD"], [/man(chester)? ?u/, "#DA291C"], [/newcastle/, "#2B2B2B"], [/nottingham|forest/, "#DD0000"], [/sunderland/, "#EB172B"], [/tottenham|spurs/, "#132257"], [/west ham/, "#7A263A"], [/wolverhampton|wolves/, "#E8A500"],
+  [/barcelona/, "#A50044"], [/real madrid/, "#E8B400"], [/atletico/, "#CB3524"], [/athletic/, "#EE2523"], [/real sociedad/, "#0067B1"], [/villarreal/, "#E8C600"], [/betis/, "#0BB363"], [/sevilla/, "#D4021D"], [/valencia/, "#EE7F00"], [/girona/, "#CD2534"], [/celta/, "#6FA8DC"], [/osasuna/, "#D91A21"], [/mallorca/, "#E20613"], [/getafe/, "#005999"], [/rayo/, "#E53027"], [/espanyol/, "#007FC8"], [/alaves/, "#0761AF"], [/elche/, "#00875A"], [/levante/, "#B4053F"], [/oviedo/, "#1D4F9C"],
+  [/inter(?!\s?miami)/, "#0068A8"], [/\bmilan\b/, "#FB090B"], [/juventus/, "#2B2B2B"], [/napoli/, "#12A0D7"], [/\broma\b/, "#8E1F2F"], [/lazio/, "#6EC6EE"], [/atalanta/, "#1E71B8"], [/fiorentina/, "#5B2A86"], [/bologna/, "#A52A2A"], [/torino/, "#8A1E41"], [/genoa/, "#A52A2A"], [/udinese/, "#666666"], [/cagliari/, "#A6192E"], [/sassuolo/, "#00A550"], [/lecce/, "#E8B800"], [/parma/, "#E8C400"], [/como/, "#1E4D9B"], [/verona/, "#E8C400"], [/cremonese/, "#C8102E"], [/pisa/, "#0A3D8F"],
+  [/bayern/, "#DC052D"], [/dortmund/, "#E8C800"], [/leverkusen/, "#E32221"], [/leipzig/, "#DD0741"], [/stuttgart/, "#E32219"], [/frankfurt/, "#E1000F"], [/monchengladbach|gladbach/, "#00A650"], [/wolfsburg/, "#65B32E"], [/freiburg/, "#D40000"], [/hoffenheim/, "#1961B5"], [/mainz/, "#C3141E"], [/union berlin/, "#EB1923"], [/werder|bremen/, "#1D9053"], [/augsburg/, "#BA3733"], [/heidenheim/, "#E2001A"], [/pauli/, "#6B3A2A"], [/koln|cologne/, "#ED1C24"], [/hamburg/, "#0A3F7E"],
+  [/paris|psg/, "#004170"], [/marseille/, "#2FAEE0"], [/lyon/, "#1C3F8A"], [/monaco/, "#E4002B"], [/lille/, "#E4002B"], [/nice/, "#C8102E"], [/\blens\b/, "#E8B800"], [/rennes/, "#E13327"], [/strasbourg/, "#009FE3"], [/nantes/, "#E8C400"], [/toulouse/, "#6A3FA0"], [/brest/, "#E2001A"], [/reims/, "#D01F2E"], [/lorient/, "#F58220"], [/angers/, "#2B2B2B"], [/auxerre/, "#0A5CA8"], [/le havre/, "#0A5CA8"], [/metz/, "#8A1538"], [/paris fc/, "#2E6BB5"],
+  [/benfica/, "#E30613"], [/porto/, "#003D84"], [/sporting/, "#008057"], [/ajax/, "#D2122E"], [/psv/, "#E2001A"], [/celtic/, "#16A34A"], [/galatasaray/, "#E8A500"], [/brugge/, "#0C6BAF"], [/slavia/, "#D2122E"], [/feyenoord/, "#E2001A"], [/salzburg/, "#D2122E"], [/copenhagen/, "#2A5CA8"], [/olympiacos/, "#D2122E"], [/kairat/, "#E8B800"], [/qarabag/, "#2B2B2B"], [/pafos/, "#0A5CA8"], [/bodo|glimt/, "#E8C400"], [/union saint|saint-gilloise/, "#E8C400"], [/shakhtar/, "#F58220"],
+];
+function teamColor(t) {
+  const n = ((t?.name || "") + " " + (t?.short_name || "")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const hit = TEAM_COLORS.find(([re]) => re.test(n));
+  return hit ? hit[1] : null;
+}
+const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const rgb2hex = (c) => "#" + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+const lumOf = (h) => { const [r, g, b] = hex2rgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+function fitColor(h) {
+  const dark = document.documentElement.dataset.theme === "dark", l = lumOf(h);
+  if (dark && l < 0.28) return rgb2hex(hex2rgb(h).map((v) => v + (255 - v) * 0.45));
+  if (!dark && l > 0.62) return rgb2hex(hex2rgb(h).map((v) => v * 0.78));
+  return h;
+}
+function applyMatchColors(m) {
+  const root = document.documentElement.style;
+  let a = teamColor(m.home), b = teamColor(m.away);
+  if (a) a = fitColor(a); if (b) b = fitColor(b);
+  if (a && b) { const x = hex2rgb(a), y = hex2rgb(b); if (Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 110) b = fitColor(lumOf(a) > 0.45 ? "#1F2A44" : "#E8B800"); }
+  if (a) root.setProperty("--home", a); if (b) root.setProperty("--away", b);
+}
+
 async function viewMatch(id, tab) {
   const [m] = await run(sb.from("matches").select(M_SEL).eq("id", id));
   if (!m) { app().innerHTML = `<div class="wrap"><div class="card"><div class="empty-note">Матч не найден.</div></div></div>`; return; }
+  applyMatchColors(m);
   const [ts, pms, evs] = await Promise.all([
     run(sb.from("team_match_stats").select("*").eq("match_id", id)),
     run(sb.from("player_match_stats").select("*,player:players(name,raw)").eq("match_id", id)),
@@ -853,21 +886,46 @@ async function matchH2H({ m }, box) {
 }
 
 /* ================= STATS (all leagues) ================= */
-async function viewStats(c) {
+async function viewStats(c, sKey) {
   const comp = c === "ALL" ? null : c;
   app().innerHTML = `<div class="wrap"><div class="card"><div class="hero"><div class="meta"><div class="eyebrow">Топ-5 лиг + Лига чемпионов · 2026/27</div><h1 class="title">Статистика</h1><p>Лидеры по голам, xG, ассистам, рейтингу и эффективности.</p></div></div>
-    <div class="feed-tools" style="padding:20px 28px 22px"><div class="pills" id="cpills"><a class="pill ${!comp ? "on" : ""}" href="#/stats">Все турниры</a>${COMPS.map((x) => `<a class="pill ${comp === x.id ? "on" : ""}" href="#/stats?c=${x.id}">${x.short}</a>`).join("")}</div></div></div>
+    <div class="feed-tools" style="padding:20px 28px 22px"><div class="pills" id="cpills"><a class="pill ${!comp ? "on" : ""}" href="#/stats"><svg class="pl-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>Все турниры</a>${COMPS.map((x) => `<a class="pill ${comp === x.id ? "on" : ""}" href="#/stats?c=${x.id}"><img class="pl-logo" src="${x.logo}" alt="" onerror="this.remove()">${x.short}</a>`).join("")}</div></div></div>
     <div class="section-gap"></div><div id="sbody">${skel(10)}</div></div>`;
   const ps = await getPlayerSeason(comp);
   const agg = comp ? ps : Object.values(ps.reduce((o, r) => { const a = (o[r.player_id] ??= { ...r, goals: 0, assists: 0, xg: 0, xa: 0, shots: 0, shots_on_target: 0, minutes: 0, apps: 0, yellow: 0, rs: 0, rn: 0 }); for (const k of ["goals", "assists", "shots", "shots_on_target", "minutes", "apps", "yellow"]) a[k] += r[k]; a.xg += +r.xg; a.xa += +r.xa; if (r.rating) { a.rs += r.rating * r.apps; a.rn += r.apps; } a.rating = a.rn ? a.rs / a.rn : null; return o; }, {}));
-  const card = (lbl, f, d = 0, filt = () => true, sfx = "") => { const rows = agg.filter(filt).map((r) => ({ r, v: f(r) })).sort((a, b) => b.v - a.v).slice(0, 10); return `<div class="card"><div class="card-h">${lbl}</div>${rows.map(({ r, v }, i) => `<a class="lead" href="#/player/${r.player_id}"><span class="rk">${i + 1}</span>${avatar(r.player_id, r.name)}<div class="who"><div>${esc(r.name)}</div><small>${esc(r.team_short)}${comp ? "" : ""}</small></div><span class="v">${num(v, d)}${sfx}</span></a>`).join("")}<div style="height:8px"></div></div>`; };
   const m90 = (r) => r.minutes >= 450;
-  $("#sbody").innerHTML = `<div class="leaders-grid">
-    ${card("Голы", (r) => r.goals)}${card("Ассисты", (r) => r.assists)}${card("Гол+пас", (r) => r.goals + r.assists)}
-    ${card("xG", (r) => +r.xg, 2)}${card("xA", (r) => +r.xa, 2)}${card("Реализация: голы − xG", (r) => r.goals - r.xg, 2)}
-    ${card("Удары", (r) => r.shots)}${card("Удары в створ", (r) => r.shots_on_target)}${card("Zone рейтинг (450+ мин)", (r) => +r.rating || 0, 2, m90)}
-    ${card("Голы за 90 (450+ мин)", (r) => p90(r.goals, r.minutes), 2, m90)}${card("xG за 90 (450+ мин)", (r) => p90(+r.xg, r.minutes), 2, m90)}${card("Жёлтые карточки", (r) => r.yellow)}
-  </div>`;
+  const CATS = [
+    { k: "goals", t: "Голы", f: (r) => r.goals },
+    { k: "assists", t: "Ассисты", f: (r) => r.assists },
+    { k: "ga", t: "Гол + пас", f: (r) => r.goals + r.assists },
+    { k: "xg", t: "xG", f: (r) => +r.xg, d: 2 },
+    { k: "xa", t: "xA", f: (r) => +r.xa, d: 2 },
+    { k: "fin", t: "Реализация: голы − xG", f: (r) => r.goals - r.xg, d: 2 },
+    { k: "shots", t: "Удары", f: (r) => r.shots },
+    { k: "sot", t: "Удары в створ", f: (r) => r.shots_on_target },
+    { k: "rating", t: "Zone рейтинг", sub: "450+ мин", f: (r) => +r.rating || 0, d: 2, filt: m90 },
+    { k: "g90", t: "Голы за 90", sub: "450+ мин", f: (r) => p90(r.goals, r.minutes), d: 2, filt: m90 },
+    { k: "xg90", t: "xG за 90", sub: "450+ мин", f: (r) => p90(+r.xg, r.minutes), d: 2, filt: m90 },
+    { k: "yc", t: "Жёлтые карточки", f: (r) => r.yellow },
+  ];
+  const GROUPS = [["Результативность", ["goals", "assists", "ga"]], ["Ожидаемые голы", ["xg", "xa", "fin"]], ["Удары", ["shots", "sot"]], ["Эффективность", ["rating", "g90", "xg90"]], ["Дисциплина", ["yc"]]];
+  const rank = (ct, n) => agg.filter(ct.filt || (() => true)).map((r) => ({ r, v: ct.f(r) })).sort((a, b) => b.v - a.v).slice(0, n);
+  const base = "#/stats" + (comp ? "?c=" + comp : "");
+  const cur = CATS.find((x) => x.k === sKey);
+  if (cur) {
+    $("#sbody").innerHTML = `<a class="s-back" href="${base}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>Вся статистика</a>
+      <div class="card"><div class="card-h">${cur.t}${cur.sub ? ` <small class="muted">· ${cur.sub}</small>` : ""}</div>${rank(cur, 30).map(({ r, v }, i) => `<a class="lead" href="#/player/${r.player_id}"><span class="rk">${i + 1}</span>${avatar(r.player_id, r.name)}<div class="who"><div>${esc(r.name)}</div><small>${esc(r.team_short)}</small></div><span class="v">${num(v, cur.d || 0)}</span></a>`).join("")}<div style="height:8px"></div></div>`;
+    window.scrollTo({ top: 0 });
+    return;
+  }
+  const cardOf = (ct) => `<a class="card scard" href="${base}${comp ? "&" : "?"}s=${ct.k}"><div class="card-h">${ct.t}${ct.sub ? ` <small class="muted">${ct.sub}</small>` : ""}<svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></div>${rank(ct, 3).map(({ r, v }, i) => `<div class="lead">${avatar(r.player_id, r.name)}<div class="who"><div>${esc(r.name)}</div><small>${esc(r.team_short)}</small></div><span class="v${i ? "" : " top"}">${num(v, ct.d || 0)}</span></div>`).join("")}<div style="height:8px"></div></a>`;
+  $("#sbody").innerHTML = `<div class="s-chips" id="sgroups"><button type="button" class="pill on" data-g="">Всё</button>${GROUPS.map(([t], i) => `<button type="button" class="pill" data-g="${i}">${t}</button>`).join("")}</div>
+    ${GROUPS.map(([t, ks], i) => `<section class="s-grp" data-g="${i}"><h2 class="s-h">${t}</h2><div class="leaders-grid">${ks.map((k) => cardOf(CATS.find((x) => x.k === k))).join("")}</div></section>`).join("")}`;
+  $("#sgroups").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    $$("#sgroups .pill").forEach((x) => x.classList.toggle("on", x === b));
+    $$(".s-grp").forEach((g) => { g.style.display = !b.dataset.g || g.dataset.g === b.dataset.g ? "" : "none"; });
+  });
 }
 
 /* ================= COMPARE ================= */
@@ -905,4 +963,44 @@ async function viewCompare(params) {
 /* ---------------- boot ---------------- */
 applyTheme();
 buildShell();
+/* ---------------- leagues page (#/leagues) ---------------- */
+function viewLeagues() {
+  const fol = () => store.get("favLeagues", []).filter((id) => COMP[id]);
+  let edit = false, query = "";
+  const open = {};
+  app().innerHTML = `<div class="wrap lg"><h1 class="lg-title">Лиги</h1><label class="lg-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="lgq" type="search" placeholder="Найти лигу" autocomplete="off" spellcheck="false"></label><div id="lgbody"></div></div>`;
+  const body = $("#lgbody");
+  const row = (c, btn) => `<div class="lg-row"><a class="lg-link" href="#/league/${c.id}"><img src="${c.logo}" alt="" loading="lazy"><span>${esc(c.name)}</span></a>${btn || ""}</div>`;
+  const head = (t, act, label) => `<div class="lg-h"><h2>${t}</h2>${act ? `<button type="button" class="lg-a" data-act="${act}">${label}</button>` : ""}</div>`;
+  function draw() {
+    const f = fol(), q = query.trim().toLowerCase();
+    const ok = (c) => !q || (c.name + " " + c.short + " " + c.country).toLowerCase().includes(q);
+    const mine = f.map((id) => COMP[id]).filter(ok);
+    const sug = store.get("lgHideSug", false) || q ? [] : COMPS.filter((c) => !f.includes(c.id) && ok(c));
+    const all = COMPS.filter(ok);
+    let h = "";
+    if (mine.length) h += head("Вы следите", "edit", edit ? "Готово" : "Изменить") + mine.map((c) => row(c, edit ? `<button type="button" class="lg-btn rm" data-act="unf" data-id="${c.id}">Убрать</button>` : "")).join("");
+    if (sug.length) h += head("Рекомендуемые", "hide", "Больше не показывать") + sug.map((c) => row(c, `<button type="button" class="lg-btn" data-act="fol" data-id="${c.id}">Следить</button>`)).join("");
+    const groups = {};
+    all.forEach((c) => (groups[c.country] = groups[c.country] || []).push(c));
+    h += head("Все турниры") + (Object.keys(groups).map((k) => {
+      const list = groups[k], on = q || open[k];
+      return `<div class="lg-grp"><button type="button" class="lg-gh" data-act="grp" data-k="${esc(k)}"><img src="${list[0].logo}" alt=""><b>${esc(k)}</b><svg class="chev${on ? " up" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>${on ? `<div class="lg-sub">${list.map((c) => row(c, f.includes(c.id) ? "" : `<button type="button" class="lg-btn" data-act="fol" data-id="${c.id}">Следить</button>`)).join("")}</div>` : ""}</div>`;
+    }).join("") || `<div class="lg-empty">Ничего не найдено</div>`);
+    body.innerHTML = h;
+  }
+  body.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const a = b.dataset.act, id = b.dataset.id;
+    if (a === "edit") edit = !edit;
+    else if (a === "hide") store.set("lgHideSug", true);
+    else if (a === "fol") store.set("favLeagues", [...fol().filter((x) => x !== id), id]);
+    else if (a === "unf") { store.set("favLeagues", fol().filter((x) => x !== id)); if (!fol().length) edit = false; }
+    else if (a === "grp") open[b.dataset.k] = !open[b.dataset.k];
+    draw();
+  });
+  $("#lgq").addEventListener("input", (e) => { query = e.target.value; draw(); });
+  draw();
+}
+
 route();

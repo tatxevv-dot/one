@@ -108,7 +108,16 @@
     });
   }
   let q = 0;
-  const run = () => { q = 0; $$(".seg").forEach(seg); $$("#cpills").forEach(pills); minutes(); datebar(); localnav(); tables(); $$("select.pill").forEach((s) => s.classList.add("zsel")); };
+  const run = () => { q = 0; $$(".seg").forEach(seg); minutes(); datebar(); localnav(); tables(); $$("select.pill").forEach((s) => s.classList.add("zsel")); };
   const app = document.getElementById("app");
   if (app) { new MutationObserver(() => { if (!q) q = requestAnimationFrame(run); }).observe(app, { childList: true, subtree: true }); run(); }
+})();
+
+/* ===== v6: keep the active section tab in view ===== */
+(function () {
+  const app = document.getElementById("app"); if (!app) return;
+  let q = 0;
+  const run = () => { q = 0; const t = app.querySelector(".localnav .tabs"), a = t && t.querySelector("a.on"); if (a && !t.dataset.sc) { t.dataset.sc = 1; t.scrollLeft = a.offsetLeft - (t.clientWidth - a.offsetWidth) / 2; } };
+  new MutationObserver(() => { if (!q) q = requestAnimationFrame(run); }).observe(app, { childList: true, subtree: true });
+  run();
 })();
