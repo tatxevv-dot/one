@@ -10,7 +10,9 @@ const COMPS = [
   { id: "BL1", name: "Bundesliga", short: "Бундеслига", country: "Германия", logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/10.png" },
   { id: "FL1", name: "Ligue 1", short: "Лига 1", country: "Франция", logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/9.png" },
   { id: "CL", name: "Champions League", short: "ЛЧ", country: "Европа", logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/2.png" },
+  { id: "NL", name: "Nations League", short: "ЛН", country: "Европа", logo: "data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Ccircle cx=%2732%27 cy=%2732%27 r=%2730%27 fill=%27%231b4fd8%27/%3E%3Cpath d=%27M32 12l6 12 13 2-9.500 9 2.500 13L32 41l-12 7 2.500-13L13 26l13-2z%27 fill=%27%23fff%27/%3E%3C/svg%3E" },
 ];
+const CUP_IDS = new Set(["CL", "NL"]);
 const COMP = Object.fromEntries(COMPS.map((c) => [c.id, c]));
 const TEAM_SEL = "id,name,short_name,crest_url";
 const M_SEL = `*,home:teams!matches_home_team_id_fkey(${TEAM_SEL}),away:teams!matches_away_team_id_fkey(${TEAM_SEL})`;
@@ -26,9 +28,7 @@ const fmtTime = (d) => new Date(d).toLocaleTimeString("ru-RU", { hour: "2-digit"
 const fmtDate = (d, o = { day: "numeric", month: "short" }) => new Date(d).toLocaleDateString("ru-RU", o);
 const fmtDay = (d) => new Date(d).toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "short" });
 const initials = (n) => (n || "?").split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
-let PHOTOS = {};
-try { PHOTOS = JSON.parse(localStorage.getItem("zone_photos_v1") || "{}"); } catch (e) {}
-const headshot = (id) => PHOTOS[id] ? `https://images.fotmob.com/image_resources/playerimages/${PHOTOS[id]}.png` : `https://a.espncdn.com/i/headshots/soccer/players/full/${id}.png`;
+const headshot = (id) => `https://a.espncdn.com/i/headshots/soccer/players/full/${id}.png`;
 const crest = (t, cls = "crest") => `<img class="${cls}" src="${esc(t?.crest_url || "")}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
 const avatar = (id, name, cls = "avatar") => `<span class="${cls}"><img src="${headshot(id)}" alt="" loading="lazy" onerror="this.remove()">${esc(initials(name))}</span>`;
 const ratingCls = (r) => (r == null ? "r-na" : r >= 8 ? "r-elite" : r >= 7 ? "r-good" : r >= 6 ? "r-ok" : "r-bad");
@@ -174,7 +174,7 @@ async function route() {
   const [path, qs] = location.hash.replace(/^#\/?/, "").split("?");
   const parts = path.split("/").filter(Boolean);
   const params = new URLSearchParams(qs || "");
-  $$(".gnav-links a").forEach((a) => a.classList.toggle("active", a.dataset.r === (parts[0] || "home") || (parts[0] === "league" && a.dataset.r === "cl" && parts[1] === "CL")));
+  $$(".gnav-links a").forEach((a) => a.classList.toggle("active", a.dataset.r === (parts[0] || "home") || (parts[0] === "league" && ((a.dataset.r === "cl" && parts[1] === "CL") || (a.dataset.r === "nl" && parts[1] === "NL")))));
   window.scrollTo({ top: 0 });
   try {
     if (!parts.length) await viewHome(params);
@@ -276,7 +276,7 @@ async function viewHome(params) {
     if (state.filter === "live") list = list.filter((m) => m.status === "LIVE" || m.status === "PAUSED");
     if (state.filter === "fav") { const ft = new Set(favTeams().map((t) => t.id)), fm = new Set(favMatches()); list = list.filter((m) => fm.has(m.id) || ft.has(m.home_team_id) || ft.has(m.away_team_id)); }
     const body = $("#feedBody"); if (!body) return;
-    if (!list.length) { body.innerHTML = `<div class="empty-note" style="padding:28px 18px;text-align:center">${state.filter === "live" ? "Сейчас нет матчей в прямом эфире." : state.filter === "fav" ? "Нет матчей избранных команд в этот день." : "В этот день нет матчей топ-5 лиг и Лиги чемпионов."}<div id="nearBtns" style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap"></div></div>`; if (state.filter === "all") nearDays(); return; }
+    if (!list.length) { body.innerHTML = `<div class="empty-note" style="padding:28px 18px;text-align:center">${state.filter === "live" ? "Сейчас нет матчей в прямом эфире." : state.filter === "fav" ? "Нет матчей избранных команд в этот день." : "В этот день нет матчей топ-5 лиг, Лиги чемпионов и Лиги наций."}<div id="nearBtns" style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap"></div></div>`; if (state.filter === "all") nearDays(); return; }
     if (state.sort === "time") { body.innerHTML = `<div class="comp-group">${list.map((m) => matchRow(m)).join("")}</div>`; return; }
     body.innerHTML = COMPS.map((c) => {
       const ms = list.filter((m) => m.competition_id === c.id); if (!ms.length) return "";
@@ -311,14 +311,13 @@ async function homeRight() {
     box.innerHTML = `<div class="card-h">Таблица<a class="more" href="#/league/${cur}/table">Полностью</a></div>
       <div style="padding:0 14px 10px;overflow-x:auto"><div class="seg" id="mseg">${COMPS.map((c) => `<button data-c="${c.id}" class="${c.id === cur ? "on" : ""}" title="${esc(c.name)}" style="flex:1;display:grid;place-items:center"><img src="${c.logo}" alt="${esc(c.short)}" style="width:18px;height:18px;object-fit:contain;display:block"></button>`).join("")}</div></div>
       <table class="tbl"><thead><tr><th>#</th><th class="l">Команда</th><th>И</th><th>+/-</th><th>О</th></tr></thead><tbody>
-      ${st.slice(0, cur === "CL" ? 12 : 10).map((r) => `<tr onclick="location.hash='#/team/${r.team_id}'" style="cursor:pointer"><td class="pos"><i style="background:${r.note_color || "transparent"}"></i>${r.position}</td><td class="l"><span class="team">${crest(r.team, "crest sm")}${esc(r.team?.short_name || r.team?.name)}</span></td><td>${r.played}</td><td>${sgn(r.goals_for - r.goals_against, 0)}</td><td class="pts">${r.points}</td></tr>`).join("")}
+      ${st.slice(0, CUP_IDS.has(cur) ? 12 : 10).map((r) => `<tr onclick="location.hash='#/team/${r.team_id}'" style="cursor:pointer"><td class="pos"><i style="background:${r.note_color || "transparent"}"></i>${r.position}</td><td class="l"><span class="team">${crest(r.team, "crest sm")}${esc(r.team?.short_name || r.team?.name)}</span></td><td>${r.played}</td><td>${sgn(r.goals_for - r.goals_against, 0)}</td><td class="pts">${r.points}</td></tr>`).join("")}
       </tbody></table><div style="height:8px"></div>`;
     $("#mseg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; cur = b.dataset.c; store.set("miniComp", cur); drawTable(); });
   };
   drawTable();
   // players of the week
-  const [lastFin] = await run(sb.from("matches").select("utc_date").eq("status", "FINISHED").lte("utc_date", new Date().toISOString()).order("utc_date", { ascending: false }).limit(1));
-  const since = new Date(Math.min(Date.now(), lastFin ? new Date(lastFin.utc_date).getTime() + 86400000 : Date.now()) - 7 * 86400000).toISOString();
+  const since = new Date(Date.now() - 7 * 86400000).toISOString();
   run(sb.from("player_match_stats").select("rating,goals,assists,player_id,player:players(name),team:teams(name,short_name,crest_url),m:matches!inner(utc_date,competition_id)").gte("m.utc_date", since).not("rating", "is", null).order("rating", { ascending: false }).limit(6)).then((rows) => {
     const box = $("#potw"); if (!box) return;
     box.innerHTML = `<div class="card-h">Лучшие игроки недели<span class="more muted">Zone рейтинг</span></div>` + (rows.length ? rows.map((r) => `<a class="lead" href="#/player/${r.player_id}">${avatar(r.player_id, r.player?.name)}<div class="who"><div>${esc(r.player?.name)}</div><small>${esc([r.team?.short_name || r.team?.name, COMP[r.m.competition_id]?.short, r.goals ? r.goals + " г" : "", r.assists ? r.assists + " а" : ""].filter(Boolean).join(" · "))}</small></div>${ratingChip(r.rating)}</a>`).join("") + `<div style="height:8px"></div>` : `<div class="empty-note">Нет сыгранных матчей за 7 дней.</div>`);
@@ -547,7 +546,7 @@ async function viewTeam(id, tab) {
   const [team] = await run(sb.from("teams").select("*").eq("id", id));
   if (!team) { app().innerHTML = `<div class="wrap"><div class="card"><div class="empty-note">Команда не найдена.</div></div></div>`; return; }
   const comps = await run(sb.from("standings").select("*,team:teams(" + TEAM_SEL + ")").eq("team_id", id));
-  const league = comps.find((c) => c.competition_id !== "CL") || comps[0];
+  const league = comps.find((c) => !CUP_IDS.has(c.competition_id)) || comps[0];
   const fav = favTeams().some((t) => t.id === id);
   const tabs = [["overview", "Обзор"], ["matches", "Матчи"], ["squad", "Состав"], ["stats", "Статистика"], ["table", "Таблица"]];
   app().innerHTML = `<div class="wrap">${localnav(`${crest(team)}<span class="t">${esc(team.name)}</span>`, tabs, tab, `#/team/${id}`)}
@@ -648,7 +647,7 @@ async function viewPlayer(id) {
     </tbody></table></div></div>
   </div>`;
   // percentiles vs same position, same main competition
-  const main = seasons.filter((s) => s.competition_id !== "CL").sort((a, b) => b.minutes - a.minutes)[0] || seasons[0];
+  const main = seasons.filter((s) => !CUP_IDS.has(s.competition_id)).sort((a, b) => b.minutes - a.minutes)[0] || seasons[0];
   if (!main) { $("#pctCard").innerHTML = `<div class="card-h">Перцентили</div><div class="empty-note">Нет данных.</div>`; return; }
   const pool = (await getPlayerSeason(main.competition_id)).filter((r) => posGroup(r.position) === g && r.minutes >= 270);
   const me = main;
@@ -711,12 +710,10 @@ async function viewMatch(id, tab) {
   const [m] = await run(sb.from("matches").select(M_SEL).eq("id", id));
   if (!m) { app().innerHTML = `<div class="wrap"><div class="card"><div class="empty-note">Матч не найден.</div></div></div>`; return; }
   applyMatchColors(m);
-  const streamsP = sb.from("match_streams").select("id,url,label,priority").eq("match_id", id).order("priority", { ascending: false }).order("id").then((r) => r.data || [], () => []);
-  const [ts, pms, evs, streams] = await Promise.all([
+  const [ts, pms, evs] = await Promise.all([
     run(sb.from("team_match_stats").select("*").eq("match_id", id)),
     run(sb.from("player_match_stats").select("*,player:players(name,raw)").eq("match_id", id)),
     run(sb.from("match_events").select("*").eq("match_id", id).order("minute")),
-    streamsP,
   ]);
   evs.sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || (a.raw?.extra || 0) - (b.raw?.extra || 0) || (a.raw?.seq || 0) - (b.raw?.seq || 0));
   const c = COMP[m.competition_id];
@@ -736,9 +733,7 @@ async function viewMatch(id, tab) {
       <div class="mh-info">${m.raw?.venue ? `<span>${ICON.pin}${esc(m.raw.venue)}${m.raw.city ? ", " + esc(m.raw.city) : ""}</span>` : ""}${m.raw?.attendance ? `<span>${ICON.users}${Number(m.raw.attendance).toLocaleString("ru-RU")}</span>` : ""}${m.raw?.referee ? `<span>${ICON.whistle}${esc(m.raw.referee)}</span>` : ""}${H && A ? `<span><b>xG</b>&nbsp;${num(H.xg, 2)} – ${num(A.xg, 2)}</span>` : ""}</div>
     </div></div>
     ${localnav(`${crest(m.home, "crest sm")}<span class="t">${esc(m.home.short_name)} ${played ? m.home_goals + "–" + m.away_goals : "–"} ${esc(m.away.short_name)}</span>${crest(m.away, "crest sm")}`, tabs, tab, `#/match/${id}`)}
-    <div id="mstream"></div>
     <div id="mcontent"></div></div>`;
-  mountStream(id, streams, $("#mstream"));
   $(".localnav").style.marginTop = "16px";
   const box = $("#mcontent");
   const ctx = { m, ts, pms, evs, H, A };
@@ -750,55 +745,6 @@ async function viewMatch(id, tab) {
   else if (tab === "h2h") matchH2H(ctx, box);
   if (live) refreshTimer = setInterval(() => { memo.clear(); route(); }, 60000);
 }
-// ---- HLS player (match_streams) ----
-const STREAM = { id: null, el: null, hls: null, urls: "" };
-function destroyStream() { try { STREAM.hls?.destroy(); } catch (e) {} STREAM.el?.querySelector("video")?.pause(); STREAM.id = STREAM.el = STREAM.hls = null; STREAM.urls = ""; }
-function loadHls() {
-  if (window.Hls) return Promise.resolve(window.Hls);
-  return new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"; sc.onload = () => ok(window.Hls); sc.onerror = no; document.head.appendChild(sc); });
-}
-function playSource(v, url, note) {
-  try { STREAM.hls?.destroy(); } catch (e) {} STREAM.hls = null;
-  note.textContent = "";
-  const fail = () => { note.textContent = "Трансляция недоступна. Попробуйте другой источник или обновите страницу."; };
-  if (window.Hls && window.Hls.isSupported()) {
-    const h = new Hls({ lowLatencyMode: true, backBufferLength: 60 });
-    STREAM.hls = h; h.loadSource(url); h.attachMedia(v);
-    let netTries = 0, medTries = 0;
-    h.on(Hls.Events.FRAG_LOADED, () => { netTries = 0; note.textContent = ""; });
-    h.on(Hls.Events.ERROR, (_, d) => {
-      if (!d.fatal) return;
-      const dead = /manifest|level/i.test(d.details || "") && d.response && d.response.code >= 400;
-      if (d.type === Hls.ErrorTypes.NETWORK_ERROR && !dead && netTries++ < 3) { note.textContent = "Переподключение…"; setTimeout(() => h.startLoad(), 1500 * netTries); }
-      else if (d.type === Hls.ErrorTypes.MEDIA_ERROR && medTries++ < 2) h.recoverMediaError();
-      else { fail(); h.destroy(); if (STREAM.hls === h) STREAM.hls = null; }
-    });
-  } else if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = url; v.onerror = fail; }
-  else fail();
-}
-async function mountStream(id, streams, slot) {
-  if (!slot) return;
-  const urls = streams.map((s) => s.url).join("|");
-  if (!streams.length) { if (STREAM.id === id) destroyStream(); return; }
-  if (STREAM.id === id && STREAM.urls === urls && STREAM.el) { slot.replaceWith(STREAM.el); const v = STREAM.el.querySelector("video"); if (STREAM.want && v.paused) v.play().catch(() => {}); return; }
-  destroyStream();
-  const el = document.createElement("div");
-  el.className = "card stream-card"; el.id = "mstream";
-  el.innerHTML = `<div class="card-h">Трансляция<span class="live-dot" style="margin-left:8px"></span>${streams.length > 1 ? `<span class="stream-srcs">${streams.map((s, i) => `<button class="chip${i ? "" : " on"}" data-i="${i}">${esc(s.label || "Источник " + (i + 1))}</button>`).join("")}</span>` : ""}</div>
-    <div class="stream-box"><video controls playsinline autoplay muted preload="auto"></video></div><div class="stream-note muted"></div>`;
-  slot.replaceWith(el);
-  Object.assign(STREAM, { id, el, urls });
-  const v = el.querySelector("video"), note = el.querySelector(".stream-note");
-  STREAM.want = true;
-  v.addEventListener("play", () => { STREAM.want = true; });
-  v.addEventListener("pause", () => { if (el.isConnected) STREAM.want = false; });
-  try { await loadHls(); } catch (e) {}
-  if (STREAM.el !== el) return;
-  playSource(v, streams[0].url, note);
-  el.querySelectorAll(".stream-srcs button").forEach((b) => b.onclick = () => { el.querySelectorAll(".stream-srcs button").forEach((x) => x.classList.toggle("on", x === b)); playSource(v, streams[+b.dataset.i].url, note); v.play().catch(() => {}); });
-}
-window.addEventListener("hashchange", () => { if (STREAM.id && !location.hash.startsWith("#/match/" + STREAM.id)) destroyStream(); });
-
 function noData(msg) { return `<div class="card"><div class="empty-note" style="padding:28px 18px;text-align:center">${msg}</div></div>`; }
 function matchFacts({ m, evs, H, A, pms }, box) {
   if (!evs.length && m.status === "SCHEDULED") return matchPreview(m, box);
@@ -1053,12 +999,4 @@ function viewLeagues() {
   draw();
 }
 
-(async () => {
-  if (!Object.keys(PHOTOS).length) {
-    try { PHOTOS = await (await fetch("assets/photos.json?v=1")).json(); localStorage.setItem("zone_photos_v1", JSON.stringify(PHOTOS)); } catch (e) {}
-    route();
-  } else {
-    route();
-    fetch("assets/photos.json?v=1").then(r => r.json()).then(j => { PHOTOS = j; localStorage.setItem("zone_photos_v1", JSON.stringify(j)); }).catch(() => {});
-  }
-})();
+route();
