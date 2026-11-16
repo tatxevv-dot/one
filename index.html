@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Zone — футбольная аналитика</title>
-<meta name="description" content="Zone: результаты, таблицы, xG, рейтинги игроков и статистика топ-5 лиг, Лиги чемпионов и Лиги наций.">
+<meta name="description" content="Zone: результаты, таблицы, xG, рейтинги игроков и статистика топ-5 лиг и Лиги чемпионов.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18191c" media="(prefers-color-scheme: dark)">
@@ -12,7 +12,6 @@
 <link rel="preconnect" href="https://pvocjvvzkvzhckilhokx.supabase.co">
 <link rel="stylesheet" href="assets/style.css?v=2">
 <link rel="stylesheet" href="assets/skin.css?v=12">
-<link rel="stylesheet" href="assets/admin.css?v=2">
 <script>
 try{var t=JSON.parse(localStorage.getItem("zone.theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}
 addEventListener("hashchange",function(){window.__zn=Date.now()});
@@ -29,7 +28,6 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
       <a href="#/" data-r="home">Матчи</a>
       <button id="leaguesBtn" type="button">Лиги</button>
       <a href="#/league/CL" data-r="cl">Лига чемпионов</a>
-      <a href="#/league/NL" data-r="nl">Лига наций</a>
       <a href="#/stats" data-r="stats">Статистика</a>
     </nav>
     <div class="gnav-icons">
@@ -79,10 +77,9 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="assets/app.js?v=14"></script>
-<script src="assets/auth.js?v=4"></script>
+<script src="assets/app.js?v=13"></script>
+<script src="assets/auth.js?v=2"></script>
 <script src="assets/skin.js?v=7"></script>
 <script src="assets/ux.js?v=3"></script>
-<script src="assets/admin.js?v=2"></script>
 </body>
 </html>
