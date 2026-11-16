@@ -11,7 +11,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a6cff'/%3E%3Cpath d='M9 10h14l-14 12h14' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://pvocjvvzkvzhckilhokx.supabase.co">
 <link rel="stylesheet" href="assets/style.css?v=2">
-<link rel="stylesheet" href="assets/skin.css?v=4">
+<link rel="stylesheet" href="assets/skin.css?v=5">
 <script>
 try{var t=JSON.parse(localStorage.getItem("zone.theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}
 addEventListener("hashchange",function(){window.__zn=Date.now()});
@@ -23,15 +23,12 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
 <header class="gnav">
   <div class="gnav-in">
     <a class="logo" href="#/" aria-label="Zone — главная">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M9 10h14L9 22h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Zone
-    </a>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M9 10h14L9 22h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>one</span></a>
     <nav class="gnav-links" aria-label="Основное меню">
       <a href="#/" data-r="home">Матчи</a>
       <button id="leaguesBtn" type="button">Лиги</button>
       <a href="#/league/CL" data-r="cl">Лига чемпионов</a>
       <a href="#/stats" data-r="stats">Статистика</a>
-      <a href="#/compare" data-r="compare">Сравнение</a>
     </nav>
     <div class="gnav-icons">
       <button class="icon-btn" id="searchBtn" type="button" aria-label="Поиск" title="Поиск ( / )"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
@@ -47,7 +44,7 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
     <div><h6>Таблицы</h6><div class="small a"></div></div>
     <div><h6>Игроки</h6><div class="small b"></div>
       <h6 style="margin-top:18px">Разделы</h6>
-      <div class="small"><a href="#/">Матчи</a><a href="#/stats">Статистика</a><a href="#/compare">Сравнение</a></div>
+      <div class="small"><a href="#/">Матчи</a><a href="#/stats">Статистика</a></div>
     </div>
   </div>
 </div>
@@ -76,7 +73,6 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
   <a href="#/" data-r="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5l3.8 2.8-1.4 4.4H9.6l-1.4-4.4z"/></svg>Матчи</a>
   <button type="button" id="tbLeagues"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8.5 20h7"/></svg>Лиги</button>
   <a href="#/stats" data-r="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>Статистика</a>
-  <a href="#/compare" data-r="compare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M17 4v16M3 8l4-4 4 4M13 16l4 4 4-4"/></svg>Сравнение</a>
   <button type="button" id="tbSearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Поиск</button>
 </nav>
 
@@ -86,7 +82,7 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="assets/app.js"></script>
-<script src="assets/skin.js?v=4"></script>
+<script src="assets/skin.js?v=5"></script>
 <script src="assets/ux.js?v=2"></script>
 </body>
 </html>
