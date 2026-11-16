@@ -147,7 +147,7 @@ async function doSearch(s) {
   box.innerHTML = (comps.length ? `<h6 class="eyebrow">Турниры</h6>` + comps.map((c) => `<a class="sr-item" href="#/league/${c.id}"><img src="${c.logo}" alt="">${c.name}</a>`).join("") : "")
     + (teams.length ? `<h6 class="eyebrow">Команды</h6>` + teams.map((t) => `<a class="sr-item" href="#/team/${t.id}">${crest(t)}${esc(t.name)}<small>${esc(t.country || "")}</small></a>`).join("") : "")
     + (players.length ? `<h6 class="eyebrow">Игроки</h6>` + players.map((p) => `<a class="sr-item" href="#/player/${p.id}">${avatar(p.id, p.name, "avatar")}${esc(p.name)}<small>${esc(p.team?.name || "")} · ${esc(posRu(p.position))}</small></a>`).join("") : "")
-    || `<div class="empty-note">Ничего не найдено по запросу «${esc(s)}».</div>`;
+    || `<div class="empty-note">Ничего не найдено</div>`;
   const first = $("#sres .sr-item"); if (first) first.classList.add("sel");
 }
 
@@ -247,7 +247,7 @@ async function viewHome(params) {
   app().innerHTML = `<div class="wrap"><div class="cols">
     <aside class="left side">
       <div class="card"><div class="card-h">Топ-турниры</div><nav class="nav-list">${COMPS.map((c) => `<a href="#/league/${c.id}"><img src="${c.logo}" alt="">${c.name}</a>`).join("")}</nav><div style="height:10px"></div></div>
-      <div class="card"><div class="card-h">Избранные команды</div>${favs.length ? `<nav class="nav-list">${favs.map((t) => `<a href="#/team/${t.id}">${crest(t)}${esc(t.name)}</a>`).join("")}</nav><div style="height:10px"></div>` : `<div class="empty-note">Нажмите «Следить» на странице команды — она появится здесь, а её матчи будут в фильтре «Избранное».</div>`}</div>
+      <div class="card"><div class="card-h">Избранные команды</div>${favs.length ? `<nav class="nav-list">${favs.map((t) => `<a href="#/team/${t.id}">${crest(t)}${esc(t.name)}</a>`).join("")}</nav><div style="height:10px"></div>` : `<div class="empty-note">Пусто</div>`}</div>
     </aside>
     <main>
       <div class="card" id="feed">
@@ -331,7 +331,7 @@ async function viewLeague(id, tab, params) {
   const c = COMP[id]; if (!c) return viewHome(params);
   const tabs = [["overview", "Обзор"], ["table", "Таблица"], ["matches", "Матчи"], ["players", "Игроки"], ["teams", "Команды"], ["xg", "xG-аналитика"]];
   app().innerHTML = `<div class="wrap">${localnav(`<img src="${c.logo}" class="crest" alt=""><span class="t">${c.name}</span>`, tabs, tab, `#/league/${id}`)}
-    <div id="lbody">${tab === "overview" ? `<div class="card"><div class="hero"><img src="${c.logo}" class="crest lg" alt=""><div class="meta"><div class="eyebrow">${c.country} · Сезон 2026/27</div><h1 class="title">${c.name}</h1><p id="lsub">Загрузка…</p></div></div><div style="height:24px"></div></div><div class="section-gap"></div>` : ""}<div id="lcontent">${skel(10)}</div></div></div>`;
+    <div id="lbody">${tab === "overview" ? `<div class="card"><div class="hero"><img src="${c.logo}" class="crest lg" alt=""><div class="meta"><h1 class="title">${c.name}</h1></div></div><div style="height:24px"></div></div><div class="section-gap"></div>` : ""}<div id="lcontent">${skel(10)}</div></div></div>`;
   const box = $("#lcontent");
   if (tab === "overview") return leagueOverview(id, box);
   if (tab === "table") return leagueTable(id, box);
@@ -344,7 +344,6 @@ async function leagueOverview(id, box) {
   const [st, ms, ps] = await Promise.all([getStandings(id), getCompMatches(id), getPlayerSeason(id)]);
   const fin = ms.filter((m) => m.status === "FINISHED");
   const goals = fin.reduce((s, m) => s + m.home_goals + m.away_goals, 0);
-  $("#lsub").textContent = `${st.length} команд · сыграно ${fin.length} из ${ms.length} матчей · ${goals} голов (${num(goals / Math.max(1, fin.length), 2)} за матч)`;
   const upcoming = ms.filter((m) => m.status === "SCHEDULED" && new Date(m.utc_date) > new Date()).slice(0, 8);
   const recent = fin.slice(-8).reverse();
   const live = ms.filter((m) => m.status === "LIVE" || m.status === "PAUSED");
@@ -427,7 +426,7 @@ async function leagueTable(id, box) {
       const rows = await xgTable(id);
       html = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th class="l">Команда</th><th>И</th><th>xG</th><th>xGA</th><th>xGD</th><th>Голы</th><th>Г−xG</th><th>xPTS</th><th>Очки</th><th>О−xPTS</th></tr></thead><tbody>
         ${rows.map((r) => `<tr onclick="location.hash='#/team/${r.team_id}'" style="cursor:pointer"><td>${r.rank}</td><td class="l"><span class="team">${crest(r.team)}${esc(r.team.name)}</span></td><td>${r.played}</td><td>${num(r.xg, 1)}</td><td>${num(r.xga, 1)}</td><td>${sgn(r.xg - r.xga, 1)}</td><td>${r.gf}:${r.ga}</td><td style="color:${r.gf - r.xg >= 0 ? "var(--win)" : "var(--loss)"}">${sgn(r.gf - r.xg, 1)}</td><td class="pts">${num(r.xpts, 1)}</td><td>${r.pts}</td><td style="color:${r.pts - r.xpts >= 0 ? "var(--win)" : "var(--loss)"}">${sgn(r.pts - r.xpts, 1)}</td></tr>`).join("")}
-        </tbody></table></div><div class="legend"><span>xG — модель Zone по координатам ударов. xPTS — ожидаемые очки (распределение Пуассона по xG матча).</span></div>`;
+        </tbody></table></div>`;
     } else html = standingsTable(computeTable(ms, mode), null, { forms: formsFrom(ms) });
     $("#tbody").innerHTML = html;
   };
@@ -505,7 +504,7 @@ async function leaguePlayers(id, box, params) {
 async function leagueTeams(id, box) {
   const ts = await getTeamSeason(id);
   const pg = (k, d = 1) => ({ v: (r) => r[k] / r.played, f: (r) => num(r[k] / r.played, d) });
-  box.innerHTML = `<div class="card"><div class="feed-tools"><b>Командная статистика</b><span class="muted" style="font-size:12px">Средние за матч · нажмите на заголовок для сортировки</span></div><div id="ttbl"></div></div>`;
+  box.innerHTML = `<div class="card"><div class="feed-tools"><b>Командная статистика</b></div><div id="ttbl"></div></div>`;
   sortableTable($("#ttbl"), [
     { k: "name", h: "Команда", l: 1, sort: false, f: (r) => `<span class="team">${crest(r)}${esc(r.name)}</span>` },
     { k: "played", h: "И" },
@@ -549,8 +548,8 @@ async function viewTeam(id, tab) {
   const fav = favTeams().some((t) => t.id === id);
   const tabs = [["overview", "Обзор"], ["matches", "Матчи"], ["squad", "Состав"], ["stats", "Статистика"], ["table", "Таблица"]];
   app().innerHTML = `<div class="wrap">${localnav(`${crest(team)}<span class="t">${esc(team.name)}</span>`, tabs, tab, `#/team/${id}`)}
-    <div class="card"><div class="hero">${crest(team, "crest lg")}<div class="meta"><div class="eyebrow">${esc(team.country || "Европа")}${league ? " · " + COMP[league.competition_id]?.name : ""}</div><h1 class="title">${esc(team.name)}</h1>
-      <p>${comps.map((c) => `${COMP[c.competition_id]?.short}: ${c.position}-е место, ${c.points} очк.`).join(" · ") || "Сезон 2026/27"}</p></div>
+    <div class="card"><div class="hero">${crest(team, "crest lg")}<div class="meta"><h1 class="title">${esc(team.name)}</h1>
+      <p>${comps.map((c) => `${COMP[c.competition_id]?.short}: ${c.position}-е место, ${c.points} очк.`).join(" · ") || ""}</p></div>
       <div class="hero-actions"><button class="btn ghost ${fav ? "on" : ""}" id="followBtn">${fav ? "✓ Вы следите" : "+ Следить"}</button></div></div><div style="height:24px"></div></div>
     <div class="section-gap"></div><div id="tcontent">${skel(8)}</div></div>`;
   $("#followBtn").addEventListener("click", (e) => { const on = toggleFavTeam(team); e.target.classList.toggle("on", on); e.target.textContent = on ? "✓ Вы следите" : "+ Следить"; });
@@ -596,7 +595,7 @@ async function teamSquad(id, box) {
     return `<div class="card"><div class="card-h">${POS_RU_PL[g]}<span class="more muted">${list.length}</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>№</th><th class="l">Игрок</th><th>И</th><th>Мин</th><th>Г</th><th>А</th><th>xG</th><th>ЖК</th><th>Рейтинг</th></tr></thead><tbody>
       ${list.map((p) => { const a = agg[p.id] || {}; return `<tr onclick="location.hash='#/player/${p.id}'" style="cursor:pointer"><td class="muted">${esc(p.raw?.jersey || "")}</td><td class="l"><span class="team">${avatar(p.id, p.name)}<span><b style="font-weight:600">${esc(p.name)}</b><br><small class="muted">${esc(p.position || "")}</small></span></span></td><td>${a.apps || 0}</td><td>${a.minutes || 0}</td><td>${a.goals || 0}</td><td>${a.assists || 0}</td><td>${num(a.xg || 0, 2)}</td><td>${a.yellow || 0}</td><td>${ratingChip(a.rn ? a.rs / a.rn : null)}</td></tr>`; }).join("")}
     </tbody></table></div></div>`;
-  }).join("") || `<div class="card"><div class="empty-note">Состав появится после первых сыгранных матчей.</div></div>`;
+  }).join("") || `<div class="card"><div class="empty-note">Нет данных</div></div>`;
 }
 async function teamStats(team, comps, box) {
   const parts = await Promise.all(comps.map(async (c) => {
@@ -624,7 +623,7 @@ async function viewPlayer(id) {
   const tot = seasons.reduce((a, s) => { for (const k of ["apps", "starts", "minutes", "goals", "assists", "shots", "shots_on_target", "yellow", "red"]) a[k] = (a[k] || 0) + s[k]; a.xg = (a.xg || 0) + +s.xg; a.xa = (a.xa || 0) + +s.xa; if (s.rating) { a.rs = (a.rs || 0) + s.rating * s.apps; a.rn = (a.rn || 0) + s.apps; } return a; }, {});
   const g = posGroup(p.position);
   app().innerHTML = `<div class="wrap">
-    <div class="card"><div class="hero">${avatar(p.id, p.name, "avatar xl")}<div class="meta"><div class="eyebrow"><a class="link" href="#/team/${p.team?.id}">${esc(p.team?.name || "")}</a> · ${esc(p.position || POS_RU[g])}${p.raw?.jersey ? " · №" + esc(p.raw.jersey) : ""}</div><h1 class="title">${esc(p.name)}</h1><p>Сезон 2026/27 · ${seasons.map((s) => COMP[s.competition_id]?.short).join(", ") || "нет матчей"}</p></div>
+    <div class="card"><div class="hero">${avatar(p.id, p.name, "avatar xl")}<div class="meta"><div class="eyebrow"><a class="link" href="#/team/${p.team?.id}">${esc(p.team?.name || "")}</a> · ${esc(p.position || POS_RU[g])}${p.raw?.jersey ? " · №" + esc(p.raw.jersey) : ""}</div><h1 class="title">${esc(p.name)}</h1></div>
       <div class="hero-actions"><a class="btn" href="#/compare?a=${p.id}">Сравнить</a></div></div>
       <div class="card-b" style="padding-top:22px"><div class="tiles">
         <div class="tile"><div class="v">${tot.apps || 0}</div><div class="k">Матчи (${tot.starts || 0} в старте)</div></div><div class="tile"><div class="v">${tot.minutes || 0}</div><div class="k">Минуты</div></div>
@@ -807,7 +806,7 @@ async function matchPreview(m, box) {
     ${sH && sA ? `<div class="section-gap"></div><div class="card"><div class="card-h">Сравнение по таблице</div><div class="card-b">${vsRow("Место", sH.position, sA.position, 0, true)}${vsRow("Очки", sH.points, sA.points)}${vsRow("Забито", sH.goals_for, sA.goals_for)}${vsRow("Пропущено", sH.goals_against, sA.goals_against, 0, true)}</div></div>` : ""}`;
 }
 function matchStats({ m, H, A }, box) {
-  if (!H || !A) { box.innerHTML = noData("Статистика появится после начала матча."); return; }
+  if (!H || !A) { box.innerHTML = noData("Нет данных"); return; }
   const h = H.raw?.s || {}, a = A.raw?.s || {};
   const rows = [["Ожидаемые голы (xG)", H.xg, A.xg, 2], ["Удары", h.totalShots, a.totalShots], ["Удары в створ", h.shotsOnTarget, a.shotsOnTarget], ["Заблокированные удары", h.blockedShots, a.blockedShots], ["Пенальти", h.penaltyKickShots, a.penaltyKickShots],
     ["__Пасы"], ["Пасы", h.totalPasses, a.totalPasses], ["Точные пасы", h.accuratePasses, a.accuratePasses], ["Точность паса, %", H.pass_accuracy, A.pass_accuracy, 1], ["Длинные передачи", h.totalLongBalls, a.totalLongBalls], ["Точные длинные", h.accurateLongBalls, a.accurateLongBalls], ["Навесы", h.totalCrosses, a.totalCrosses], ["Точные навесы", h.accurateCrosses, a.accurateCrosses],
@@ -844,7 +843,7 @@ function layoutXI(players, formation) {
   return res;
 }
 function matchLineups({ m, pms, evs, H, A }, box) {
-  if (!pms.length) { box.innerHTML = noData("Составы появятся примерно за час до начала матча."); return; }
+  if (!pms.length) { box.innerHTML = noData("Составов пока нет"); return; }
   const goalsBy = {}, cardsBy = {};
   for (const e of evs) { if (!e.player_id) continue; if (["goal", "penalty_goal"].includes(e.type)) goalsBy[e.player_id] = (goalsBy[e.player_id] || 0) + 1; if (e.type === "yellow" || e.type === "red") cardsBy[e.player_id] = e.type; }
   const dot = (p, x, y) => `<a class="pl-dot" href="#/player/${p.player_id}" style="left:${x}%;top:${y}%"><span class="rt">${p.rating ? ratingChip(p.rating) : ""}</span><span class="badges">${goalsBy[p.player_id] ? `<span class="gball">${ICON.ball}${goalsBy[p.player_id] > 1 ? goalsBy[p.player_id] : ""}</span>` : ""}${cardsBy[p.player_id] ? `<span class="${cardsBy[p.player_id] === "red" ? "card-r" : "card-y"}" style="padding:0;width:8px;height:11px"></span>` : ""}${p.raw?.subOut ? `<span style="color:#ff3b30">↓${p.raw.outM ?? ""}</span>` : ""}</span><span class="face"><img src="${headshot(p.player_id)}" alt="" onerror="this.remove()">${esc(p.raw?.jersey || "")}</span><span class="nm">${esc(p.player?.raw?.last || p.player?.name?.split(" ").slice(-1)[0] || "")}</span></a>`;
@@ -860,7 +859,7 @@ function matchLineups({ m, pms, evs, H, A }, box) {
 }
 function matchShots({ m, evs, H, A }, box) {
   const shots = evs.filter((e) => e.raw?.x != null);
-  if (!shots.length) { box.innerHTML = noData("Данных об ударах пока нет."); return; }
+  if (!shots.length) { box.innerHTML = noData("Нет данных"); return; }
   let filt = "all";
   const draw = () => {
     const list = shots.filter((s) => filt === "all" || s.team_id === filt);
@@ -869,10 +868,10 @@ function matchShots({ m, evs, H, A }, box) {
   };
   const sum = (tid, f) => shots.filter((s) => s.team_id === tid).filter(f).length;
   const big = (tid) => sum(tid, (s) => +s.raw.xg >= 0.3 && !s.raw.penalty);
-  box.innerHTML = `<div class="card"><div class="feed-tools"><div class="seg" id="shseg"><button data-t="all" class="on">Обе команды</button><button data-t="${m.home_team_id}">${esc(m.home.short_name)}</button><button data-t="${m.away_team_id}">${esc(m.away.short_name)}</button></div><span class="muted" style="margin-left:auto;font-size:12px">${esc(m.home.short_name)} атакует вправо →</span></div>
-    <div class="pitch-wrap" style="padding-top:0"><div class="pitch h shotmap" id="smap"></div><div class="legend" style="padding:10px 0 0"><span><i style="background:var(--win)"></i>Гол</span><span><i style="background:#fff;border:1px solid var(--line)"></i>В створ</span><span><i style="background:rgba(0,0,0,.35)"></i>Блок</span><span><i style="border:1.5px solid #8ec5ff"></i>Мимо</span><span>Размер круга = xG</span></div></div></div>
+  box.innerHTML = `<div class="card"><div class="feed-tools"><div class="seg" id="shseg"><button data-t="all" class="on">Обе команды</button><button data-t="${m.home_team_id}">${esc(m.home.short_name)}</button><button data-t="${m.away_team_id}">${esc(m.away.short_name)}</button></div></div>
+    <div class="pitch-wrap" style="padding-top:0"><div class="pitch h shotmap" id="smap"></div><div class="legend" style="padding:10px 0 0"><span><i style="background:var(--win)"></i>Гол</span><span><i style="background:#fff;border:1px solid var(--line)"></i>В створ</span><span><i style="background:rgba(0,0,0,.35)"></i>Блок</span><span><i style="border:1.5px solid #8ec5ff"></i>Мимо</span></div></div></div>
     <div class="section-gap"></div><div class="grid2"><div class="card"><div class="card-h">Сводка</div><div class="card-b">${vsRow("xG", H?.xg, A?.xg, 2)}${vsRow("xG без пенальти", shots.filter((s) => s.team_id === m.home_team_id && !s.raw.penalty).reduce((a, s) => a + +s.raw.xg, 0), shots.filter((s) => s.team_id === m.away_team_id && !s.raw.penalty).reduce((a, s) => a + +s.raw.xg, 0), 2)}${vsRow("Удары", sum(m.home_team_id, () => 1), sum(m.away_team_id, () => 1))}${vsRow("Голевые моменты (xG ≥ 0.3)", big(m.home_team_id), big(m.away_team_id))}${vsRow("xG за удар", (H?.xg || 0) / Math.max(1, sum(m.home_team_id, () => 1)), (A?.xg || 0) / Math.max(1, sum(m.away_team_id, () => 1)), 2)}${vsRow("Удары головой", sum(m.home_team_id, (s) => s.raw.header), sum(m.away_team_id, (s) => s.raw.header))}
-      <div class="muted" style="font-size:12px;margin-top:10px">xG рассчитан моделью Zone по расстоянию и углу удара (пенальти = 0.76, удары головой с понижающим коэффициентом).</div></div></div>
+      </div></div>
       <div class="card"><div class="card-h">Все удары</div><div class="card-b" id="slist" style="max-height:420px;overflow:auto"></div></div></div>`;
   $("#shseg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; filt = b.dataset.t; $$("#shseg button").forEach((x) => x.classList.toggle("on", x === b)); draw(); });
   draw();
@@ -882,13 +881,13 @@ async function matchH2H({ m }, box) {
   const fin = list.filter((x) => x.status === "FINISHED");
   const w = fin.filter((x) => resultFor(x, m.home_team_id) === "W").length, l = fin.filter((x) => resultFor(x, m.home_team_id) === "L").length;
   box.innerHTML = `<div class="card" style="max-width:760px;margin:0 auto"><div class="h2h"><div><div class="n" style="color:var(--home)">${w}</div><small>${esc(m.home.short_name)}</small></div><div><div class="n">${fin.length - w - l}</div><small>Ничьи</small></div><div><div class="n" style="color:var(--away)">${l}</div><small>${esc(m.away.short_name)}</small></div></div>
-    ${list.map((x) => `<div style="display:flex;align-items:center"><img src="${COMP[x.competition_id]?.logo}" style="width:18px;margin-left:16px" alt=""><div style="flex:1">${matchRow(x, { showDate: true })}</div></div>`).join("")}<div class="empty-note">Учитываются матчи сезона 2026/27 в базе Zone.</div></div>`;
+    ${list.map((x) => `<div style="display:flex;align-items:center"><img src="${COMP[x.competition_id]?.logo}" style="width:18px;margin-left:16px" alt=""><div style="flex:1">${matchRow(x, { showDate: true })}</div></div>`).join("")}</div>`;
 }
 
 /* ================= STATS (all leagues) ================= */
 async function viewStats(c, sKey) {
   const comp = c === "ALL" ? null : c;
-  app().innerHTML = `<div class="wrap"><div class="card"><div class="hero"><div class="meta"><div class="eyebrow">Топ-5 лиг + Лига чемпионов · 2026/27</div><h1 class="title">Статистика</h1><p>Лидеры по голам, xG, ассистам, рейтингу и эффективности.</p></div></div>
+  app().innerHTML = `<div class="wrap"><div class="card"><div class="hero"><div class="meta"><h1 class="title">Статистика</h1></div></div>
     <div class="feed-tools" style="padding:20px 28px 22px"><div class="pills" id="cpills"><a class="pill ${!comp ? "on" : ""}" href="#/stats"><svg class="pl-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>Все турниры</a>${COMPS.map((x) => `<a class="pill ${comp === x.id ? "on" : ""}" href="#/stats?c=${x.id}"><img class="pl-logo" src="${x.logo}" alt="" onerror="this.remove()">${x.short}</a>`).join("")}</div></div></div>
     <div class="section-gap"></div><div id="sbody">${skel(10)}</div></div>`;
   { const cp = $("#cpills"), on = cp && cp.querySelector(".pill.on"); if (on) cp.scrollLeft = Math.max(0, on.offsetLeft - (cp.clientWidth - on.offsetWidth) / 2); }
@@ -904,12 +903,12 @@ async function viewStats(c, sKey) {
     { k: "fin", t: "Реализация: голы − xG", f: (r) => r.goals - r.xg, d: 2 },
     { k: "shots", t: "Удары", f: (r) => r.shots },
     { k: "sot", t: "Удары в створ", f: (r) => r.shots_on_target },
-    { k: "rating", t: "Средний рейтинг за сезон", sub: "450+ мин", f: (r) => +r.rating || 0, d: 2, filt: m90 },
-    { k: "g90", t: "Голы за 90", sub: "450+ мин", f: (r) => p90(r.goals, r.minutes), d: 2, filt: m90 },
-    { k: "xg90", t: "xG за 90", sub: "450+ мин", f: (r) => p90(+r.xg, r.minutes), d: 2, filt: m90 },
+    { k: "rating", t: "Zone рейтинг", f: (r) => +r.rating || 0, d: 2, filt: m90 },
+    { k: "g90", t: "Голы за 90", f: (r) => p90(r.goals, r.minutes), d: 2, filt: m90 },
+    { k: "xg90", t: "xG за 90", f: (r) => p90(+r.xg, r.minutes), d: 2, filt: m90 },
     { k: "yc", t: "Жёлтые карточки", f: (r) => r.yellow },
   ];
-  const GROUPS = [["Zone рейтинг", ["rating"]], ["Результативность", ["goals", "assists", "ga"]], ["Ожидаемые голы", ["xg", "xa", "fin"]], ["Удары", ["shots", "sot"]], ["Эффективность", ["g90", "xg90"]], ["Дисциплина", ["yc"]]];
+  const GROUPS = [["Рейтинг", ["rating"]], ["Результативность", ["goals", "assists", "ga"]], ["Ожидаемые голы", ["xg", "xa", "fin"]], ["Удары", ["shots", "sot"]], ["Эффективность", ["g90", "xg90"]], ["Дисциплина", ["yc"]]];
   const rank = (ct, n) => agg.filter(ct.filt || (() => true)).map((r) => ({ r, v: ct.f(r) })).sort((a, b) => b.v - a.v).slice(0, n);
   const base = "#/stats" + (comp ? "?c=" + comp : "");
   const cur = CATS.find((x) => x.k === sKey);
@@ -926,7 +925,7 @@ async function viewStats(c, sKey) {
 /* ================= COMPARE ================= */
 async function viewCompare(params) {
   const ids = [params.get("a"), params.get("b")];
-  app().innerHTML = `<div class="wrap"><div class="card"><div class="hero"><div class="meta"><div class="eyebrow">Инструмент</div><h1 class="title">Сравнение игроков</h1><p>Выберите двух игроков — сравним показатели за 90 минут и перцентили.</p></div></div>
+  app().innerHTML = `<div class="wrap"><div class="card"><div class="hero"><div class="meta"><h1 class="title">Сравнение игроков</h1></div></div>
     <div class="card-b" style="padding:22px 28px 26px"><div class="cmp-pick">${[0, 1].map((i) => `<div class="dd"><input id="pick${i}" placeholder="${i ? "Второй игрок" : "Первый игрок"}" autocomplete="off"><div class="dd-list" id="dd${i}"></div></div>`).join("")}</div></div></div>
     <div class="section-gap"></div><div id="cbody"></div></div>`;
   const sel = [null, null];
