@@ -35,25 +35,42 @@
     return m || "Ошибка";
   };
 
+  const X_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+  const BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>';
+  const top = (back) => `<div class="auth-top">${back ? `<button type="button" class="auth-back" data-m="${back}">${BACK_SVG}Назад</button>` : "<span></span>"}<button type="button" class="auth-x" data-a="close" aria-label="Закрыть">${X_SVG}</button></div>`;
+  const field = (name, ph, type, ac) => `<input type="${type}" name="${name}" placeholder="${ph}" autocomplete="${ac}" autocapitalize="off" spellcheck="false">`;
+  const form = (inner, label) => `<form id="authForm" novalidate>${inner}<div class="auth-msg" id="authMsg">${esc2(msg)}</div><button type="submit" class="auth-btn" disabled>${label}</button></form>`;
+
   function draw() {
-    if (user) {
-      sheet.innerHTML = `<div class="auth-user"><div class="auth-ava">${esc2((user.email || "?")[0].toUpperCase())}</div><div class="auth-mail">${esc2(user.email)}</div></div><button type="button" class="auth-btn ghost" data-a="out">Выйти</button>`;
-      return;
+    if (mode === "new" && user) {
+      sheet.innerHTML = top() + `<h2 class="auth-h">Новый пароль</h2>` + form(field("password", "Пароль", "password", "new-password"), "Сохранить");
+    } else if (user) {
+      sheet.innerHTML = top() + `<div class="auth-user"><div class="auth-ava">${esc2((user.email || "?")[0].toUpperCase())}</div><div class="auth-mail">${esc2(user.email)}</div></div><button type="button" class="auth-btn ghost" data-a="out">Выйти</button>`;
+    } else if (mode === "reset") {
+      sheet.innerHTML = top("in") + `<h2 class="auth-h">Сброс пароля</h2>` + form(field("email", "Почта", "email", "email"), "Отправить");
+    } else {
+      const inn = mode === "in";
+      sheet.innerHTML = top() + `<h2 class="auth-h">${inn ? "Вход" : "Регистрация"}</h2>` + form(field("email", "Почта", "email", "email") + field("password", "Пароль", "password", inn ? "current-password" : "new-password"), inn ? "Войти" : "Создать аккаунт")
+        + (inn ? `<button type="button" class="auth-link" data-m="reset">Забыли пароль?</button>` : "")
+        + `<div class="auth-or"><span>или</span></div><div class="auth-sw">${inn ? `Нет аккаунта? <button type="button" data-m="up">Регистрация</button>` : `Есть аккаунт? <button type="button" data-m="in">Войти</button>`}</div>`;
     }
-    sheet.innerHTML = `<div class="auth-tabs"><button type="button" data-m="in" class="${mode === "in" ? "on" : ""}">Вход</button><button type="button" data-m="up" class="${mode === "up" ? "on" : ""}">Регистрация</button></div>
-      <form id="authForm" novalidate><input type="email" name="email" placeholder="Почта" autocomplete="email" autocapitalize="off" spellcheck="false"><input type="password" name="password" placeholder="Пароль" autocomplete="${mode === "in" ? "current-password" : "new-password"}"><div class="auth-msg" id="authMsg">${esc2(msg)}</div><button type="submit" class="auth-btn">${mode === "in" ? "Войти" : "Создать аккаунт"}</button></form>`;
   }
   sheet.addEventListener("click", async (e) => {
     const t = e.target.closest("button"); if (!t) return;
-    if (t.dataset.m) { mode = t.dataset.m; msg = ""; draw(); }
+    if (t.dataset.m) { mode = t.dataset.m; msg = ""; draw(); const i = sheet.querySelector("input"); if (i) i.focus(); }
+    else if (t.dataset.a === "close") close();
     else if (t.dataset.a === "out") { await sb.auth.signOut(); close(); }
+  });
+  sheet.addEventListener("input", (e) => {
+    const f = e.target.closest("form"); if (!f) return;
+    const ok = [...f.querySelectorAll("input")].every((i) => i.value.trim());
+    f.querySelector(".auth-btn").disabled = !ok;
   });
   sheet.addEventListener("submit", async (e) => {
     e.preventDefault(); if (busy) return;
-    const f = e.target, email = f.email.value.trim(), password = f.password.value;
-    const say = (t) => { msg = t; const m = $("#authMsg"); if (m) m.textContent = t; };
-    if (!email || !password) return say("Введите почту и пароль");
-    if (password.length < 6) return say("Пароль минимум 6 символов");
+    const f = e.target, email = f.email ? f.email.value.trim() : "", password = f.password ? f.password.value : "";
+    const say = (t, ok) => { msg = t; const m = $("#authMsg"); if (m) { m.textContent = t; m.classList.toggle("ok", !!ok); } };
+    if (f.password && password.length < 6) return say("Пароль минимум 6 символов");
     busy = true; say("");
     const sub = f.querySelector(".auth-btn"); sub.disabled = true;
     try {
@@ -61,13 +78,21 @@
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
         close();
-      } else {
+      } else if (mode === "up") {
         const { data, error } = await sb.auth.signUp({ email, password });
         if (error) throw error;
-        if (data.session) close(); else say("Подтвердите почту по письму");
+        if (data.session) close(); else say("Подтвердите почту по письму", true);
+      } else if (mode === "reset") {
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+        if (error) throw error;
+        say("Письмо отправлено", true);
+      } else if (mode === "new") {
+        const { error } = await sb.auth.updateUser({ password });
+        if (error) throw error;
+        mode = "in"; close(); if (typeof toast === "function") toast("Пароль обновлён");
       }
     } catch (err) { say(ruErr(err)); }
-    busy = false; sub.disabled = false;
+    busy = false; if (sub.isConnected && !(mode === "reset" && msg === "Письмо отправлено")) sub.disabled = false;
   });
 
   /* ---- favorites <-> user_prefs ---- */
@@ -104,6 +129,7 @@
   sb.auth.onAuthStateChange((ev, session) => {
     user = session?.user || null;
     btn.classList.toggle("in", !!user);
+    if (ev === "PASSWORD_RECOVERY") { mode = "new"; open(); }
     if (scrim.classList.contains("open")) draw();
     if (!user) { pulledFor = null; return; }
     if (pulledFor === user.id) return;

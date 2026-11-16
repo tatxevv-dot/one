@@ -287,3 +287,23 @@ h1.title{font-size:24px;line-height:1.15;font-weight:800}
 .auth-user{display:flex;align-items:center;gap:14px;margin-bottom:16px}
 .auth-ava{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-size:18px;font-weight:800;flex:none}
 .auth-mail{min-width:0;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== v12: account sheet like reference ===== */
+.auth-sheet{min-height:62vh;padding:14px 20px calc(28px + env(safe-area-inset-bottom,0px));border-radius:24px 24px 0 0}
+@media(min-width:641px){.auth-sheet{min-height:0;border-radius:24px}}
+.auth-top{display:flex;align-items:center;justify-content:space-between;height:44px;margin-bottom:8px}
+.auth-back,.auth-x{display:inline-flex;align-items:center;gap:6px;height:44px;color:var(--text-2);font-size:15px;font-weight:600}
+.auth-x{width:44px;justify-content:center}
+.auth-back svg,.auth-x svg{width:22px;height:22px}
+.auth-h{margin:8px 0 22px;text-align:center;font-size:26px;font-weight:800;letter-spacing:-.02em}
+#authForm input{height:54px;border:1.5px solid var(--line);background:var(--bg-elev);border-radius:14px}
+#authForm input:focus{border-color:var(--accent);box-shadow:none}
+.auth-msg{min-height:20px;text-align:center}
+.auth-msg.ok{color:var(--win)}
+.auth-btn{height:54px;border-radius:14px;font-size:16px}
+.auth-btn:disabled{background:var(--fill-2);color:var(--text-3);opacity:1}
+.auth-link{display:block;margin:18px auto 0;font-size:15px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.auth-or{display:flex;align-items:center;gap:16px;margin:22px 0;color:var(--text-3);font-size:14px}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.auth-sw{text-align:center;font-size:15px}
+.auth-sw button{margin-left:6px;font-weight:800;text-decoration:underline;text-underline-offset:3px}
