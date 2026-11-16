@@ -16,14 +16,19 @@
   async function mountPlayer(box, s) {
     const url = s.url, k = kindOf(url, s.kind);
     if (k === "iframe") { box.innerHTML = `<iframe src="${esc(url)}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="no-referrer"></iframe>`; return; }
-    box.innerHTML = `<video controls playsinline preload="metadata"></video>`;
+    box.innerHTML = `<video playsinline webkit-playsinline preload="metadata"></video>`;
     const v = box.firstChild, fail = (t) => { box.innerHTML = `<div class="st-err">${esc(t)}</div>`; };
-    if (k === "mp4" || v.canPlayType("application/vnd.apple.mpegurl") && k === "hls" && !window.Hls) { v.src = url; return; }
+    let hls = null;
+    const ui = window.zpAttach ? window.zpAttach(box, v, () => hls) : null; /* свой плеер; системный — только в полноэкранном режиме */
+    if (!ui) v.controls = true;
+    if (k === "mp4") { v.src = url; return; }
     try { await loadHls(); } catch (e) { if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = url; return; } return fail("Не удалось загрузить плеер"); }
     if (window.Hls && Hls.isSupported()) {
-      const h = new Hls(); hlsList.push(h); h.loadSource(url); h.attachMedia(v);
-      h.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fail("Трансляция недоступна"); });
-    } else if (v.canPlayType("application/vnd.apple.mpegurl")) v.src = url; else fail("Формат не поддерживается");
+      hls = new Hls({ liveSyncDurationCount: 3 }); hlsList.push(hls); hls.loadSource(url); hls.attachMedia(v);
+      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fail("Трансляция недоступна"); });
+      ui?.rebind();
+    } else if (v.canPlayType("application/vnd.apple.mpegurl")) v.src = url; /* iOS: нативный HLS под нашим UI */
+    else fail("Формат не поддерживается");
   }
 
   async function render(force) {

@@ -1,6 +1,6 @@
 /* Zone — custom player skin */
-.stream-box.zp{position:relative;background:#000;aspect-ratio:16/9;overflow:hidden;border-radius:inherit;-webkit-tap-highlight-color:transparent;user-select:none}
-.stream-box.zp video{width:100%;height:100%;display:block;object-fit:contain;background:#000}
+.st-box.zp,.stream-box.zp{position:relative;background:#000;aspect-ratio:16/9;overflow:hidden;border-radius:inherit;-webkit-tap-highlight-color:transparent;user-select:none}
+.st-box.zp video,.stream-box.zp video{width:100%;height:100%;display:block;object-fit:contain;background:#000}
 .zp-ui{position:absolute;inset:0;color:#fff;font:500 12px/1 -apple-system,system-ui,sans-serif}
 /* :where() => нулевая специфичность, не перебивает размеры кнопок */
 :where(.zp-ui button){all:unset;cursor:pointer;box-sizing:border-box}
