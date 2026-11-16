@@ -201,7 +201,7 @@ const localnav = (title, tabs, cur, base) => `<div class="localnav"><div class="
 
 /* ---------------- match row ---------------- */
 function statusLabel(m) {
-  if (m.status === "LIVE") return m.raw?.clock && m.raw.clock !== "0'" ? m.raw.clock : "LIVE";
+  if (m.status === "LIVE") { const c = m.raw?.clock; if (!c || c === "0'") return "LIVE"; const x = /^(\d+)'$/.exec(c); return x && m._t ? Math.min(+x[1] + Math.floor((Date.now() - m._t) / 60000), 120) + "'" : c; }
   if (m.status === "PAUSED") return "Перерыв";
   if (m.status === "FINISHED") return m.raw?.detail && /AET|Pens|ДВ|пен/i.test(m.raw.detail) ? m.raw.detail : "Конец";
   if (m.status === "POSTPONED") return "Перенесён";
@@ -301,10 +301,11 @@ async function viewHome(params) {
   };
   const load = async () => {
     matches = await run(sb.from("matches").select(M_SEL).gte("utc_date", dayStart.toISOString()).lt("utc_date", dayEnd.toISOString()).order("utc_date"));
+    const now = Date.now(); matches.forEach((m) => { m._t = now; });
     draw();
   };
   await load();
-  if (+dayStart === +today) refreshTimer = setInterval(() => { if (matches.some((m) => m.status === "LIVE" || m.status === "PAUSED" || (m.status === "SCHEDULED" && new Date(m.utc_date) < new Date()))) load(); }, 60000);
+  if (+dayStart === +today) refreshTimer = setInterval(() => { if (matches.some((m) => m.status === "LIVE" || m.status === "PAUSED" || (m.status === "SCHEDULED" && new Date(m.utc_date) < new Date()))) load(); }, 10000);
   homeRight();
 }
 async function homeRight() {
