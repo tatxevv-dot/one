@@ -26,7 +26,9 @@ const fmtTime = (d) => new Date(d).toLocaleTimeString("ru-RU", { hour: "2-digit"
 const fmtDate = (d, o = { day: "numeric", month: "short" }) => new Date(d).toLocaleDateString("ru-RU", o);
 const fmtDay = (d) => new Date(d).toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "short" });
 const initials = (n) => (n || "?").split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
-const headshot = (id) => `https://a.espncdn.com/i/headshots/soccer/players/full/${id}.png`;
+let PHOTOS = {};
+try { PHOTOS = JSON.parse(localStorage.getItem("zone_photos_v1") || "{}"); } catch (e) {}
+const headshot = (id) => PHOTOS[id] ? `https://images.fotmob.com/image_resources/playerimages/${PHOTOS[id]}.png` : `https://a.espncdn.com/i/headshots/soccer/players/full/${id}.png`;
 const crest = (t, cls = "crest") => `<img class="${cls}" src="${esc(t?.crest_url || "")}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
 const avatar = (id, name, cls = "avatar") => `<span class="${cls}"><img src="${headshot(id)}" alt="" loading="lazy" onerror="this.remove()">${esc(initials(name))}</span>`;
 const ratingCls = (r) => (r == null ? "r-na" : r >= 8 ? "r-elite" : r >= 7 ? "r-good" : r >= 6 ? "r-ok" : "r-bad");
@@ -998,4 +1000,12 @@ function viewLeagues() {
   draw();
 }
 
-route();
+(async () => {
+  if (!Object.keys(PHOTOS).length) {
+    try { PHOTOS = await (await fetch("assets/photos.json?v=1")).json(); localStorage.setItem("zone_photos_v1", JSON.stringify(PHOTOS)); } catch (e) {}
+    route();
+  } else {
+    route();
+    fetch("assets/photos.json?v=1").then(r => r.json()).then(j => { PHOTOS = j; localStorage.setItem("zone_photos_v1", JSON.stringify(j)); }).catch(() => {});
+  }
+})();
