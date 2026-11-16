@@ -711,10 +711,12 @@ async function viewMatch(id, tab) {
   const [m] = await run(sb.from("matches").select(M_SEL).eq("id", id));
   if (!m) { app().innerHTML = `<div class="wrap"><div class="card"><div class="empty-note">Матч не найден.</div></div></div>`; return; }
   applyMatchColors(m);
-  const [ts, pms, evs] = await Promise.all([
+  const streamsP = sb.from("match_streams").select("id,url,label,priority").eq("match_id", id).order("priority", { ascending: false }).order("id").then((r) => r.data || [], () => []);
+  const [ts, pms, evs, streams] = await Promise.all([
     run(sb.from("team_match_stats").select("*").eq("match_id", id)),
     run(sb.from("player_match_stats").select("*,player:players(name,raw)").eq("match_id", id)),
     run(sb.from("match_events").select("*").eq("match_id", id).order("minute")),
+    streamsP,
   ]);
   evs.sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || (a.raw?.extra || 0) - (b.raw?.extra || 0) || (a.raw?.seq || 0) - (b.raw?.seq || 0));
   const c = COMP[m.competition_id];
@@ -734,7 +736,9 @@ async function viewMatch(id, tab) {
       <div class="mh-info">${m.raw?.venue ? `<span>${ICON.pin}${esc(m.raw.venue)}${m.raw.city ? ", " + esc(m.raw.city) : ""}</span>` : ""}${m.raw?.attendance ? `<span>${ICON.users}${Number(m.raw.attendance).toLocaleString("ru-RU")}</span>` : ""}${m.raw?.referee ? `<span>${ICON.whistle}${esc(m.raw.referee)}</span>` : ""}${H && A ? `<span><b>xG</b>&nbsp;${num(H.xg, 2)} – ${num(A.xg, 2)}</span>` : ""}</div>
     </div></div>
     ${localnav(`${crest(m.home, "crest sm")}<span class="t">${esc(m.home.short_name)} ${played ? m.home_goals + "–" + m.away_goals : "–"} ${esc(m.away.short_name)}</span>${crest(m.away, "crest sm")}`, tabs, tab, `#/match/${id}`)}
+    <div id="mstream"></div>
     <div id="mcontent"></div></div>`;
+  mountStream(id, streams, $("#mstream"));
   $(".localnav").style.marginTop = "16px";
   const box = $("#mcontent");
   const ctx = { m, ts, pms, evs, H, A };
@@ -746,6 +750,47 @@ async function viewMatch(id, tab) {
   else if (tab === "h2h") matchH2H(ctx, box);
   if (live) refreshTimer = setInterval(() => { memo.clear(); route(); }, 60000);
 }
+// ---- HLS player (match_streams) ----
+const STREAM = { id: null, el: null, hls: null, urls: "" };
+function destroyStream() { try { STREAM.hls?.destroy(); } catch (e) {} STREAM.el?.querySelector("video")?.pause(); STREAM.id = STREAM.el = STREAM.hls = null; STREAM.urls = ""; }
+function loadHls() {
+  if (window.Hls) return Promise.resolve(window.Hls);
+  return new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"; sc.onload = () => ok(window.Hls); sc.onerror = no; document.head.appendChild(sc); });
+}
+function playSource(v, url, note) {
+  try { STREAM.hls?.destroy(); } catch (e) {} STREAM.hls = null;
+  note.textContent = "";
+  const fail = () => { note.textContent = "Трансляция недоступна. Попробуйте другой источник или обновите страницу."; };
+  if (window.Hls && window.Hls.isSupported()) {
+    const h = new Hls({ lowLatencyMode: true, backBufferLength: 60 });
+    STREAM.hls = h; h.loadSource(url); h.attachMedia(v);
+    h.on(Hls.Events.ERROR, (_, d) => { if (!d.fatal) return; if (d.type === Hls.ErrorTypes.NETWORK_ERROR) h.startLoad(); else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) h.recoverMediaError(); else fail(); });
+  } else if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = url; v.onerror = fail; }
+  else fail();
+}
+async function mountStream(id, streams, slot) {
+  if (!slot) return;
+  const urls = streams.map((s) => s.url).join("|");
+  if (!streams.length) { if (STREAM.id === id) destroyStream(); return; }
+  if (STREAM.id === id && STREAM.urls === urls && STREAM.el) { slot.replaceWith(STREAM.el); const v = STREAM.el.querySelector("video"); if (STREAM.want && v.paused) v.play().catch(() => {}); return; }
+  destroyStream();
+  const el = document.createElement("div");
+  el.className = "card stream-card"; el.id = "mstream";
+  el.innerHTML = `<div class="card-h">Трансляция<span class="live-dot" style="margin-left:8px"></span>${streams.length > 1 ? `<span class="stream-srcs">${streams.map((s, i) => `<button class="chip${i ? "" : " on"}" data-i="${i}">${esc(s.label || "Источник " + (i + 1))}</button>`).join("")}</span>` : ""}</div>
+    <div class="stream-box"><video controls playsinline autoplay muted preload="auto"></video></div><div class="stream-note muted"></div>`;
+  slot.replaceWith(el);
+  Object.assign(STREAM, { id, el, urls });
+  const v = el.querySelector("video"), note = el.querySelector(".stream-note");
+  STREAM.want = true;
+  v.addEventListener("play", () => { STREAM.want = true; });
+  v.addEventListener("pause", () => { if (el.isConnected) STREAM.want = false; });
+  try { await loadHls(); } catch (e) {}
+  if (STREAM.el !== el) return;
+  playSource(v, streams[0].url, note);
+  el.querySelectorAll(".stream-srcs button").forEach((b) => b.onclick = () => { el.querySelectorAll(".stream-srcs button").forEach((x) => x.classList.toggle("on", x === b)); playSource(v, streams[+b.dataset.i].url, note); v.play().catch(() => {}); });
+}
+window.addEventListener("hashchange", () => { if (STREAM.id && !location.hash.startsWith("#/match/" + STREAM.id)) destroyStream(); });
+
 function noData(msg) { return `<div class="card"><div class="empty-note" style="padding:28px 18px;text-align:center">${msg}</div></div>`; }
 function matchFacts({ m, evs, H, A, pms }, box) {
   if (!evs.length && m.status === "SCHEDULED") return matchPreview(m, box);
