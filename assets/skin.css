@@ -265,3 +265,25 @@ h1.title{font-size:24px;line-height:1.15;font-weight:800}
 #cpills .pl-logo{width:26px;height:26px;padding:3px}
 #cpills .pl-ic{width:22px;height:22px}
 .s-chips{display:none}
+
+/* ===== v11: account sheet ===== */
+#accBtn{position:relative}
+#accBtn.in::after{content:"";position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--win);box-shadow:0 0 0 2px var(--bg-elev)}
+.auth-scrim{position:fixed;inset:0;z-index:400;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.4);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.auth-scrim.open{opacity:1;visibility:visible}
+.auth-sheet{width:100%;max-width:420px;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px));border-radius:20px 20px 0 0;background:var(--bg-elev);transform:translateY(24px);transition:transform .3s var(--ease)}
+.auth-scrim.open .auth-sheet{transform:none}
+@media(min-width:641px){.auth-scrim{align-items:center}.auth-sheet{border-radius:20px;padding-bottom:24px}}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-bottom:14px;border-radius:12px;background:var(--fill-2)}
+.auth-tabs button{height:40px;border-radius:9px;font-size:15px;font-weight:600;color:var(--text-2)}
+.auth-tabs button.on{background:var(--bg-elev);color:var(--text)}
+#authForm{display:grid;gap:10px}
+#authForm input{width:100%;height:48px;padding:0 16px;border:0;border-radius:12px;background:var(--fill-2);font:inherit;font-size:16px;color:var(--text);outline:none}
+#authForm input:focus{box-shadow:0 0 0 2px var(--accent)}
+.auth-msg{min-height:18px;font-size:13px;color:var(--loss);padding:0 4px}
+.auth-btn{width:100%;height:48px;border-radius:12px;background:var(--accent);color:#fff;font-size:16px;font-weight:700}
+.auth-btn:disabled{opacity:.6}
+.auth-btn.ghost{background:var(--fill-2);color:var(--loss)}
+.auth-user{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.auth-ava{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;font-size:18px;font-weight:800;flex:none}
+.auth-mail{min-width:0;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

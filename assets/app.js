@@ -1,7 +1,7 @@
 /* Zone — football analytics. Vanilla JS + Supabase (read-only, RLS). */
 const SUPABASE_URL = "https://pvocjvvzkvzhckilhokx.supabase.co";
 const SUPABASE_KEY = "sb_publishable_amz1rV3zMWOZqazzODCDTw_MzIYN6pZ";
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 
 const COMPS = [
   { id: "PL", name: "Premier League", short: "АПЛ", country: "Англия", logo: "https://a.espncdn.com/i/leaguelogos/soccer/500/23.png" },
