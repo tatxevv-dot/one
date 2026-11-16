@@ -764,7 +764,15 @@ function playSource(v, url, note) {
   if (window.Hls && window.Hls.isSupported()) {
     const h = new Hls({ lowLatencyMode: true, backBufferLength: 60 });
     STREAM.hls = h; h.loadSource(url); h.attachMedia(v);
-    h.on(Hls.Events.ERROR, (_, d) => { if (!d.fatal) return; if (d.type === Hls.ErrorTypes.NETWORK_ERROR) h.startLoad(); else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) h.recoverMediaError(); else fail(); });
+    let netTries = 0, medTries = 0;
+    h.on(Hls.Events.FRAG_LOADED, () => { netTries = 0; note.textContent = ""; });
+    h.on(Hls.Events.ERROR, (_, d) => {
+      if (!d.fatal) return;
+      const dead = /manifest|level/i.test(d.details || "") && d.response && d.response.code >= 400;
+      if (d.type === Hls.ErrorTypes.NETWORK_ERROR && !dead && netTries++ < 3) { note.textContent = "Переподключение…"; setTimeout(() => h.startLoad(), 1500 * netTries); }
+      else if (d.type === Hls.ErrorTypes.MEDIA_ERROR && medTries++ < 2) h.recoverMediaError();
+      else { fail(); h.destroy(); if (STREAM.hls === h) STREAM.hls = null; }
+    });
   } else if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = url; v.onerror = fail; }
   else fail();
 }
