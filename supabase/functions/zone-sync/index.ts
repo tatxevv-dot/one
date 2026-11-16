@@ -34,7 +34,7 @@ function must(res: { error: unknown }, ctx: string) {
 
 function statusOf(t: { state?: string; name?: string; completed?: boolean }) {
   const n = t?.name || "";
-  if (n.includes("POSTPONED")) return "POSTPONED";
+  if (n.includes("POSTPONED") || n.includes("SUSPENDED") || n.includes("DELAYED")) return "POSTPONED";
   if (n.includes("CANCELED") || n.includes("ABANDONED")) return "CANCELLED";
   if (t?.state === "post" || t?.completed) return "FINISHED";
   if (t?.state === "in") return n.includes("HALFTIME") ? "PAUSED" : "LIVE";
