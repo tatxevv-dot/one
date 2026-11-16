@@ -1,5 +1,5 @@
-/* Zone — custom stream player UI. Overrides mountStream from app.js.
-   Native system player is used ONLY in fullscreen. */
+/* Zone — собственный плеер трансляций. window.ZonePlayer.mount(box, {url, kind}) -> {destroy}.
+   Системный (нативный) плеер устройства включается ТОЛЬКО в полноэкранном режиме. */
 (function () {
   const S = (d) => `<svg viewBox="0 0 24 24" fill="currentColor">${d}</svg>`;
   const IC = {
@@ -11,8 +11,7 @@
     fs: S('<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
   };
 
-  function setupUI(el, v, getHls) {
-    const box = el.querySelector(".stream-box");
+  function setupUI(box, v, getHls) {
     v.controls = false;
     v.removeAttribute("controls");
     box.classList.add("zp");
@@ -146,34 +145,52 @@
     return ui;
   }
 
-  window.mountStream = async function (id, streams, slot) {
-    if (!slot) return;
-    const urls = streams.map((s) => s.url).join("|");
-    if (!streams.length) { if (STREAM.id === id) destroyStream(); return; }
-    if (STREAM.id === id && STREAM.urls === urls && STREAM.el) {
-      slot.replaceWith(STREAM.el);
-      const v = STREAM.el.querySelector("video");
-      if (STREAM.want && v.paused) v.play().catch(() => {});
-      return;
+  const HLS_SRC = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
+  let hlsLoading = null;
+  const loadHls = () => window.Hls ? Promise.resolve() : (hlsLoading ||= new Promise((ok, no) => {
+    const s = document.createElement("script"); s.src = HLS_SRC; s.onload = ok; s.onerror = () => { hlsLoading = null; no(); }; document.head.appendChild(s);
+  }));
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const kindOf = (u, k) => k && k !== "auto" ? k : /\.m3u8(\?|$)/i.test(u) ? "hls" : /\.(mp4|webm|mov)(\?|$)/i.test(u) ? "mp4" : "iframe";
+
+  function mount(box, s) {
+    const url = s.url, k = kindOf(url, s.kind);
+    box.innerHTML = "";
+    if (k === "iframe") { // чужая страница плеера: свой интерфейс невозможен, полноэкран отдаём самому iframe
+      box.innerHTML = `<iframe src="${esc(url)}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
+      return { destroy() { box.innerHTML = ""; } };
     }
-    destroyStream();
-    const el = document.createElement("div");
-    el.className = "card stream-card"; el.id = "mstream";
-    el.innerHTML = `<div class="card-h">Трансляция<span class="live-dot" style="margin-left:8px"></span>${streams.length > 1 ? `<span class="stream-srcs">${streams.map((s, i) => `<button class="chip${i ? "" : " on"}" data-i="${i}">${esc(s.label || "Источник " + (i + 1))}</button>`).join("")}</span>` : ""}</div>
-      <div class="stream-box"><video playsinline autoplay muted preload="auto"></video></div><div class="stream-note muted"></div>`;
-    slot.replaceWith(el);
-    Object.assign(STREAM, { id, el, urls });
-    const v = el.querySelector("video"), note = el.querySelector(".stream-note");
-    STREAM.want = true;
-    v.addEventListener("play", () => { STREAM.want = true; });
-    v.addEventListener("pause", () => { if (el.isConnected && !document.fullscreenElement && !v.webkitDisplayingFullscreen) STREAM.want = false; });
-    const ui = setupUI(el, v, () => STREAM.hls);
-    try { await loadHls(); } catch (e) {}
-    if (STREAM.el !== el) return;
-    playSource(v, streams[0].url, note); ui.rebind();
-    el.querySelectorAll(".stream-srcs button").forEach((b) => b.onclick = () => {
-      el.querySelectorAll(".stream-srcs button").forEach((x) => x.classList.toggle("on", x === b));
-      playSource(v, streams[+b.dataset.i].url, note); ui.rebind(); v.play().catch(() => {});
-    });
-  };
+    box.innerHTML = `<video playsinline autoplay muted preload="auto"></video>`;
+    const v = box.firstChild;
+    let hls = null, dead = false;
+    const ui = setupUI(box, v, () => hls);
+    const fail = (t) => {
+      if (dead) return;
+      box.classList.remove("buf");
+      let e = box.querySelector(".st-err");
+      if (!e) { e = document.createElement("div"); e.className = "st-err"; box.appendChild(e); }
+      e.textContent = t;
+    };
+    (async () => {
+      if (k === "mp4") { v.src = url; v.addEventListener("error", () => fail("Видео недоступно")); return; }
+      try { await loadHls(); } catch (e) {}
+      if (dead) return;
+      if (window.Hls && Hls.isSupported()) {
+        hls = new Hls({ lowLatencyMode: true });
+        hls.loadSource(url); hls.attachMedia(v); ui.rebind();
+        let retries = 0;
+        hls.on(Hls.Events.ERROR, (_, d) => {
+          if (!d.fatal) return;
+          if (d.type === Hls.ErrorTypes.NETWORK_ERROR && retries++ < 3) hls.startLoad();
+          else if (d.type === Hls.ErrorTypes.MEDIA_ERROR && retries++ < 3) hls.recoverMediaError();
+          else fail("Трансляция недоступна");
+        });
+      } else if (v.canPlayType("application/vnd.apple.mpegurl")) { // iPhone / Safari: нативный HLS
+        v.src = url; v.addEventListener("error", () => fail("Трансляция недоступна"));
+      } else fail("Формат не поддерживается");
+    })();
+    return { destroy() { dead = true; try { hls?.destroy(); } catch (e) {} v.pause(); v.removeAttribute("src"); v.load(); box.innerHTML = ""; } };
+  }
+
+  window.ZonePlayer = { mount };
 })();

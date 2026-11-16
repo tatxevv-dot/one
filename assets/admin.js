@@ -1,30 +1,18 @@
 /* Zone — match streams (table match_streams). Admins add/delete from the bottom of a match page. Loaded after app.js/auth.js. */
 (function () {
   "use strict";
-  let isAdmin = false, uid = null, hlsList = [], hlsLoading = null, lastKey = "";
-  const HLS_SRC = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
-  const loadHls = () => window.Hls ? Promise.resolve() : (hlsLoading ||= new Promise((ok, no) => { const s = document.createElement("script"); s.src = HLS_SRC; s.onload = ok; s.onerror = no; document.head.appendChild(s); }));
+  let isAdmin = false, uid = null, lastKey = "";
   const matchId = () => { const m = location.hash.match(/^#\/match\/([^/?]+)/); return m ? decodeURIComponent(m[1]) : null; };
   const kindOf = (u, k) => k && k !== "auto" ? k : /\.m3u8(\?|$)/i.test(u) ? "hls" : /\.(mp4|webm|mov)(\?|$)/i.test(u) ? "mp4" : "iframe";
-  const killPlayers = () => { hlsList.forEach((h) => { try { h.destroy(); } catch (e) {} }); hlsList = []; };
+  const killPlayers = () => { try { cur?.destroy(); } catch (e) {} cur = null; };
 
   async function checkAdmin() {
     try { const { data: s } = await sbAuth.auth.getSession(); uid = s?.session?.user?.id || null; isAdmin = false;
       if (uid) { const { data } = await sbAuth.rpc("is_admin"); isAdmin = data === true; } } catch (e) { isAdmin = false; }
   }
 
-  async function mountPlayer(box, s) {
-    const url = s.url, k = kindOf(url, s.kind);
-    if (k === "iframe") { box.innerHTML = `<iframe src="${esc(url)}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="no-referrer"></iframe>`; return; }
-    box.innerHTML = `<video controls playsinline preload="metadata"></video>`;
-    const v = box.firstChild, fail = (t) => { box.innerHTML = `<div class="st-err">${esc(t)}</div>`; };
-    if (k === "mp4" || v.canPlayType("application/vnd.apple.mpegurl") && k === "hls" && !window.Hls) { v.src = url; return; }
-    try { await loadHls(); } catch (e) { if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = url; return; } return fail("Не удалось загрузить плеер"); }
-    if (window.Hls && Hls.isSupported()) {
-      const h = new Hls(); hlsList.push(h); h.loadSource(url); h.attachMedia(v);
-      h.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fail("Трансляция недоступна"); });
-    } else if (v.canPlayType("application/vnd.apple.mpegurl")) v.src = url; else fail("Формат не поддерживается");
-  }
+  let cur = null;
+  const mountPlayer = (box, s) => { cur = window.ZonePlayer.mount(box, s); };
 
   async function render(force) {
     const id = matchId(), wrap = $("#app .wrap");
