@@ -50,7 +50,7 @@
       sheet.innerHTML = top("in") + `<h2 class="auth-h">Сброс пароля</h2>` + form(field("email", "Почта", "email", "email"), "Отправить");
     } else {
       const inn = mode === "in";
-      sheet.innerHTML = top() + `<h2 class="auth-h">${inn ? "Вход" : "Регистрация"}</h2>` + form(field("email", "Почта", "email", "email") + field("password", "Пароль", "password", inn ? "current-password" : "new-password"), inn ? "Войти" : "Создать аккаунт")
+      sheet.innerHTML = top() + `<h2 class="auth-h">${inn ? "Вход" : "Регистрация"}</h2>` + form(field("email", "Почта", "email", "email") + field("password", "Пароль", "password", inn ? "current-password" : "new-password") + (inn ? "" : field("password2", "Повторите пароль", "password", "new-password")), inn ? "Войти" : "Создать аккаунт")
         + (inn ? `<button type="button" class="auth-link" data-m="reset">Забыли пароль?</button>` : "")
         + `<div class="auth-or"><span>или</span></div><div class="auth-sw">${inn ? `Нет аккаунта? <button type="button" data-m="up">Регистрация</button>` : `Есть аккаунт? <button type="button" data-m="in">Войти</button>`}</div>`;
     }
@@ -59,7 +59,7 @@
     const t = e.target.closest("button"); if (!t) return;
     if (t.dataset.m) { mode = t.dataset.m; msg = ""; draw(); const i = sheet.querySelector("input"); if (i) i.focus(); }
     else if (t.dataset.a === "close") close();
-    else if (t.dataset.a === "out") { await sb.auth.signOut(); close(); }
+    else if (t.dataset.a === "out") { await sbAuth.auth.signOut(); close(); }
   });
   sheet.addEventListener("input", (e) => {
     const f = e.target.closest("form"); if (!f) return;
@@ -71,23 +71,28 @@
     const f = e.target, email = f.email ? f.email.value.trim() : "", password = f.password ? f.password.value : "";
     const say = (t, ok) => { msg = t; const m = $("#authMsg"); if (m) { m.textContent = t; m.classList.toggle("ok", !!ok); } };
     if (f.password && password.length < 6) return say("Пароль минимум 6 символов");
+    if (mode === "up" && f.password2 && f.password2.value !== password) return say("Пароли не совпадают");
+    if (mode !== "reset" && email && !/^\S+@\S+\.\S+$/.test(email)) return say("Неверная почта");
     busy = true; say("");
     const sub = f.querySelector(".auth-btn"); sub.disabled = true;
     try {
       if (mode === "in") {
-        const { error } = await sb.auth.signInWithPassword({ email, password });
+        const { error } = await sbAuth.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        close();
+        close(); if (typeof toast === "function") toast("Вы вошли");
       } else if (mode === "up") {
-        const { data, error } = await sb.auth.signUp({ email, password });
+        const { data, error } = await sbAuth.auth.signUp({ email, password });
         if (error) throw error;
-        if (data.session) close(); else say("Подтвердите почту по письму", true);
+        if (data.user && Array.isArray(data.user.identities) && !data.user.identities.length) throw new Error("already registered");
+        let ses = data.session;
+        if (!ses) { const r = await sbAuth.auth.signInWithPassword({ email, password }); ses = r.data && r.data.session; }
+        if (ses) { close(); if (typeof toast === "function") toast("Аккаунт создан, вы вошли"); } else say("Письмо отправлено — подтвердите почту и войдите", true);
       } else if (mode === "reset") {
-        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+        const { error } = await sbAuth.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
         if (error) throw error;
         say("Письмо отправлено", true);
       } else if (mode === "new") {
-        const { error } = await sb.auth.updateUser({ password });
+        const { error } = await sbAuth.auth.updateUser({ password });
         if (error) throw error;
         mode = "in"; close(); if (typeof toast === "function") toast("Пароль обновлён");
       }
@@ -104,12 +109,12 @@
     if (!user) return;
     const row = { user_id: user.id, updated_at: new Date().toISOString() };
     for (const [k, c] of Object.entries(KEYS)) row[c] = store.get(k, []);
-    const { error } = await sb.from("user_prefs").upsert(row);
+    const { error } = await sbAuth.from("user_prefs").upsert(row);
     if (error) console.warn("[zone-auth] save", error.message);
   }
   async function pull(remoteWins) {
     if (!user) return;
-    const { data, error } = await sb.from("user_prefs").select("*").eq("user_id", user.id).maybeSingle();
+    const { data, error } = await sbAuth.from("user_prefs").select("*").eq("user_id", user.id).maybeSingle();
     if (error) { console.warn("[zone-auth] load", error.message); return; }
     let changed = false;
     for (const [k, c] of Object.entries(KEYS)) {
@@ -126,7 +131,7 @@
   };
 
   /* ---- session ---- */
-  sb.auth.onAuthStateChange((ev, session) => {
+  sbAuth.auth.onAuthStateChange((ev, session) => {
     user = session?.user || null;
     btn.classList.toggle("in", !!user);
     if (ev === "PASSWORD_RECOVERY") { mode = "new"; open(); }
