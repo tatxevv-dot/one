@@ -904,12 +904,12 @@ async function viewStats(c, sKey) {
     { k: "fin", t: "Реализация: голы − xG", f: (r) => r.goals - r.xg, d: 2 },
     { k: "shots", t: "Удары", f: (r) => r.shots },
     { k: "sot", t: "Удары в створ", f: (r) => r.shots_on_target },
-    { k: "rating", t: "Zone рейтинг", sub: "450+ мин", f: (r) => +r.rating || 0, d: 2, filt: m90 },
+    { k: "rating", t: "Средний рейтинг за сезон", sub: "450+ мин", f: (r) => +r.rating || 0, d: 2, filt: m90 },
     { k: "g90", t: "Голы за 90", sub: "450+ мин", f: (r) => p90(r.goals, r.minutes), d: 2, filt: m90 },
     { k: "xg90", t: "xG за 90", sub: "450+ мин", f: (r) => p90(+r.xg, r.minutes), d: 2, filt: m90 },
     { k: "yc", t: "Жёлтые карточки", f: (r) => r.yellow },
   ];
-  const GROUPS = [["Результативность", ["goals", "assists", "ga"]], ["Ожидаемые голы", ["xg", "xa", "fin"]], ["Удары", ["shots", "sot"]], ["Эффективность", ["rating", "g90", "xg90"]], ["Дисциплина", ["yc"]]];
+  const GROUPS = [["Zone рейтинг", ["rating"]], ["Результативность", ["goals", "assists", "ga"]], ["Ожидаемые голы", ["xg", "xa", "fin"]], ["Удары", ["shots", "sot"]], ["Эффективность", ["g90", "xg90"]], ["Дисциплина", ["yc"]]];
   const rank = (ct, n) => agg.filter(ct.filt || (() => true)).map((r) => ({ r, v: ct.f(r) })).sort((a, b) => b.v - a.v).slice(0, n);
   const base = "#/stats" + (comp ? "?c=" + comp : "");
   const cur = CATS.find((x) => x.k === sKey);
