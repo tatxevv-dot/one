@@ -132,3 +132,44 @@ h1.title{font-size:24px;line-height:1.15;font-weight:800}
 .lu .bench1{padding:0 16px 8px}
 
 @media(max-width:640px){.card{border-radius:12px}.mrow{padding:6px 12px}}
+
+/* ===== v4: spacing, dropdowns, compact tables, compact calendar ===== */
+:root{--gap:12px}
+.card+.card,.card+.section-gap+.card{margin-top:var(--gap);border-top:0;border-top-left-radius:12px;border-top-right-radius:12px}
+.card+.section-gap{height:0}
+.card:has(+.card),.card:has(+.section-gap+.card){border-bottom-left-radius:12px;border-bottom-right-radius:12px}
+.grid2,.leaders-grid{gap:var(--gap);border-radius:0;overflow:visible;background:none}
+.grid2>.card,.leaders-grid>.card,.leaders-grid .card:hover{border-radius:12px;box-shadow:none}
+.side>.card+.card{border-top:0;margin-top:var(--gap)}
+.hero{padding:18px 16px}
+.hero+div{display:none}
+.hero .meta{min-width:0}
+.hero .meta p{overflow-wrap:anywhere}
+
+/* dropdowns replace segmented buttons and pills */
+.zsel{display:block;width:100%;height:42px;margin:0!important;padding:0 36px 0 14px;border:0;border-radius:10px;background:var(--fill-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b929d' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;appearance:none!important;-webkit-appearance:none!important;font:inherit;font-size:14px;font-weight:600;color:var(--text);text-overflow:ellipsis;cursor:pointer}
+.feed-tools:has(.zsel){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:center;padding:12px 16px}
+.feed-tools:has(.zsel)>.zsel:only-of-type{grid-column:1/-1}
+.feed-tools:has(.zsel)>.muted{text-align:right;margin:0!important}
+.feed-tools:has(.zsel)>#ptext,.feed-tools:has(.zsel)>.zsel:has(~#ptext){}
+#ptext{grid-column:1/-1;width:100%;height:42px;border-radius:10px!important;border:0!important;background:var(--fill-2)!important;margin:0!important;padding:0 14px!important;font-size:14px!important}
+.feed-tools>.zsel.zmin{grid-column:1/-1}
+.feed-tools[style]:has(.zsel){padding:12px 16px 16px!important}
+#nearBtns{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px!important}
+#nearBtns .btn{padding:10px 8px;font-size:13px;border-radius:10px;white-space:normal;line-height:1.25;text-align:center}
+@media(max-width:640px){.localnav .tabs{display:none}.localnav .zsel.ln{display:block;flex:1;height:38px}}
+@media(min-width:641px){.localnav .zsel.ln{display:none}}
+
+/* compact calendar */
+.datebar{padding:8px 10px;gap:6px}
+.datebar .arrow{width:38px;height:38px;border-radius:10px;background:var(--fill-2)}
+.dpick{position:relative;flex:1;min-width:0;display:flex;justify-content:center;align-items:center;gap:8px;height:38px;border-radius:10px;background:var(--fill-2);font-weight:700;font-size:14px;cursor:pointer}
+.dpick::after{content:"";width:6px;height:6px;border-right:2px solid var(--text-3);border-bottom:2px solid var(--text-3);transform:rotate(45deg) translateY(-2px)}
+.dpick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;cursor:pointer}
+.datebar .today{font-size:13px;font-weight:600;color:var(--accent);padding:0 6px;white-space:nowrap}
+
+/* compact tables: short view fits the screen, "Подробно" opens the full scrollable one */
+.card:not([data-full]) .zh{display:none}
+.card:not([data-full]) .tbl-wrap{overflow-x:hidden}
+.tbl td.l{padding-right:12px}
+.tbl-more{display:block;width:100%;padding:13px;font-size:14px;font-weight:600;color:var(--accent);border-top:1px solid var(--line-2)}

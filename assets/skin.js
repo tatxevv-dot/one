@@ -40,3 +40,80 @@
     box.innerHTML = `<div class="lu card">${head(m.away, m.away_team_id)}<div class="lu-pitch"><div class="lu-half">${halfLines}${half(m.away_team_id, true)}</div><div class="lu-half flip">${halfLines}${half(m.home_team_id, false)}</div></div>${head(m.home, m.home_team_id)}${bench(m.away, m.away_team_id)}${bench(m.home, m.home_team_id)}</div>`;
   };
 })();
+
+/* ===== v4: dropdowns, compact calendar, compact tables ===== */
+(function () {
+  const $$ = (s, e = document) => [...e.querySelectorAll(s)];
+  const mk = (cls) => { const s = document.createElement("select"); s.className = "zsel " + (cls || ""); return s; };
+  const lab = (b) => b.textContent.trim().replace(/\s+/g, " ") || b.querySelector("img")?.alt || b.title || "–";
+  function seg(el) {
+    if (el.dataset.z) return; el.dataset.z = 1;
+    const btns = $$("button", el); if (btns.length < 2) return;
+    const sel = mk();
+    btns.forEach((b, i) => { const o = document.createElement("option"); o.value = i; o.textContent = lab(b); sel.appendChild(o); });
+    const sync = () => { const i = btns.findIndex((b) => b.classList.contains("on")); if (i >= 0) sel.value = i; };
+    sync();
+    sel.addEventListener("change", () => btns[sel.value].click());
+    el.after(sel); el.style.display = "none";
+    new MutationObserver(sync).observe(el, { attributes: true, subtree: true, attributeFilter: ["class"] });
+  }
+  function pills(el) {
+    if (el.dataset.z) return; el.dataset.z = 1;
+    const sel = mk();
+    $$("a.pill", el).forEach((a) => { const o = document.createElement("option"); o.value = a.getAttribute("href"); o.textContent = a.textContent.trim(); o.selected = a.classList.contains("on"); sel.appendChild(o); });
+    sel.addEventListener("change", () => { location.hash = sel.value; });
+    el.after(sel); el.style.display = "none";
+  }
+  function minutes() {
+    const r = document.getElementById("minm"); if (!r || r.dataset.z) return; r.dataset.z = 1;
+    const lb = r.closest("label"), sel = mk("zmin");
+    [[0, "Любые минуты"], [90, "От 90 минут"], [270, "От 270 минут"], [450, "От 450 минут"], [900, "От 900 минут"], [1350, "От 1350 минут"]].forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.appendChild(o); });
+    sel.addEventListener("change", () => { r.value = sel.value; r.dispatchEvent(new Event("input", { bubbles: true })); });
+    const mv = document.getElementById("minv");
+    if (mv) new MutationObserver(() => { const v = String(parseInt(mv.textContent) || 0); if ([...sel.options].some((o) => o.value === v)) sel.value = v; }).observe(mv, { childList: true, characterData: true, subtree: true });
+    lb.after(sel); lb.style.display = "none";
+  }
+  function datebar() {
+    const bar = document.querySelector(".datebar"); if (!bar || bar.dataset.z) return;
+    const on = bar.querySelector(".date.on"); if (!on) return; bar.dataset.z = 1;
+    const ds = $$(".date", bar), i = ds.indexOf(on);
+    const prev = ds[i - 1]?.getAttribute("href") || "#/", next = ds[i + 1]?.getAttribute("href") || "#/";
+    const iso = on.getAttribute("href").split("d=")[1] || "";
+    const first = on.firstChild.textContent.trim(), b = on.querySelector("b").textContent.trim();
+    const word = /^(Сегодня|Вчера|Завтра)$/.test(first) ? first : first.charAt(0).toUpperCase() + first.slice(1);
+    bar.innerHTML = `<a class="arrow" href="${prev}" aria-label="Предыдущий день">${ICON.chevL}</a><label class="dpick"><span>${word}, ${b}</span><input type="date" value="${iso}"></label>${first !== "Сегодня" ? `<a class="today" href="#/">Сегодня</a>` : ""}<a class="arrow" href="${next}" aria-label="Следующий день">${ICON.chevR}</a>`;
+    bar.querySelector("input").addEventListener("change", (e) => { if (e.target.value) location.hash = "#/?d=" + e.target.value; });
+  }
+  function localnav() {
+    $$(".localnav .tabs").forEach((t) => {
+      if (t.dataset.z) return; t.dataset.z = 1;
+      const sel = mk("ln");
+      $$("a", t).forEach((a) => { const o = document.createElement("option"); o.value = a.getAttribute("href"); o.textContent = a.textContent.trim(); o.selected = a.classList.contains("on"); sel.appendChild(o); });
+      sel.addEventListener("change", () => { location.hash = sel.value; });
+      t.after(sel);
+    });
+  }
+  const PRI = ["О", "Очки", "Рейтинг", "+/-", "Г", "А", "xG", "xPTS", "И", "Голы", "xGA", "Мин"];
+  function tables() {
+    $$(".tbl").forEach((t) => {
+      if (t.dataset.z) return; t.dataset.z = 1;
+      const ths = $$("thead th", t); if (ths.length <= 6) return;
+      const txt = ths.map((h) => h.textContent.replace(/[↓↑]/g, "").trim());
+      const keep = new Set([0, 1]);
+      ths.forEach((h, i) => { if (h.classList.contains("sorted")) keep.add(i); });
+      for (const p of PRI) { if (keep.size >= 5) break; const i = txt.indexOf(p); if (i >= 0) keep.add(i); }
+      const rows = $$("tbody tr", t);
+      ths.forEach((h, i) => { if (!keep.has(i)) [h, ...rows.map((r) => r.children[i])].forEach((c) => c && c.classList.add("zh")); });
+      const card = t.closest(".card");
+      if (card && !card.querySelector(".tbl-more") && !card.querySelector("a.more")) {
+        const b = document.createElement("button"); b.type = "button"; b.className = "tbl-more"; b.textContent = "Подробно";
+        b.addEventListener("click", () => { if (card.dataset.full) { delete card.dataset.full; b.textContent = "Подробно"; } else { card.dataset.full = "1"; b.textContent = "Свернуть"; } });
+        card.appendChild(b);
+      }
+    });
+  }
+  let q = 0;
+  const run = () => { q = 0; $$(".seg").forEach(seg); $$("#cpills").forEach(pills); minutes(); datebar(); localnav(); tables(); $$("select.pill").forEach((s) => s.classList.add("zsel")); };
+  const app = document.getElementById("app");
+  if (app) { new MutationObserver(() => { if (!q) q = requestAnimationFrame(run); }).observe(app, { childList: true, subtree: true }); run(); }
+})();
