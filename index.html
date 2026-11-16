@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zone — футбольная аналитика</title>
-<meta name="description" content="Zone: результаты, таблицы, xG, рейтинги игроков и статистика топ-5 лиг, Лиги чемпионов и Лиги наций.">
+<title>one — футбольная аналитика</title>
+<meta name="description" content="one: результаты, таблицы, xG, рейтинги игроков и статистика топ-5 лиг, Лиги чемпионов и Лиги наций.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Zone — футбольная аналитика">
+<meta property="og:title" content="one — футбольная аналитика">
 <meta property="og:description" content="Результаты, таблицы, xG и рейтинги игроков топ-5 лиг, Лиги чемпионов и Лиги наций.">
 <meta name="robots" content="index,follow">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a6cff'/%3E%3Cpath d='M9 10h14l-14 12h14' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a6cff'/%3E%3Cpath d='M13 12l4-3v14' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://pvocjvvzkvzhckilhokx.supabase.co">
-<link rel="stylesheet" href="assets/zone.min.css?v=9">
+<link rel="stylesheet" href="assets/zone.min.css?v=10">
 <script>
 try{var t=JSON.parse(localStorage.getItem("zone.theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}
 addEventListener("hashchange",function(){window.__zn=Date.now()});
@@ -23,13 +23,12 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
 </head>
 <body>
 <a class="skip" href="#app">К содержимому</a>
-<noscript><div class="ns">Для работы Zone нужен JavaScript.</div></noscript>
+<noscript><div class="ns">Для работы one нужен JavaScript.</div></noscript>
 <div id="loader" aria-hidden="true"></div>
 
 <header class="gnav">
   <div class="gnav-in">
-    <a class="logo" href="#/" aria-label="Zone — главная">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M9 10h14L9 22h14" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>one</span></a>
+    <a class="logo" href="#/" aria-label="one — главная"><span>one</span></a>
     <nav class="gnav-links" aria-label="Основное меню">
       <a href="#/" data-r="home">Матчи</a>
       <button id="leaguesBtn" type="button">Лиги</button>
@@ -70,7 +69,7 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
 <main id="app" tabindex="-1"></main>
 
 <footer class="foot">
-  <div class="foot-in"><div>Данные: ESPN · xG и рейтинг: модель Zone</div></div>
+  <div class="foot-in"><div>Данные: ESPN · xG и рейтинг: модель one</div></div>
 </footer>
 
 <nav class="tabbar" aria-label="Навигация">
@@ -84,11 +83,11 @@ addEventListener("hashchange",function(){window.__zn=Date.now()});
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="assets/app.js?v=21"></script>
+<script src="assets/app.js?v=22"></script>
 <script src="assets/auth.js?v=4"></script>
 <script src="assets/skin.js?v=9"></script>
 <script src="assets/ux.js?v=3"></script>
 <script src="assets/player.js?v=1"></script>
-<script src="assets/admin.js?v=6"></script>
+<script src="assets/admin.js?v=7"></script>
 </body>
 </html>
