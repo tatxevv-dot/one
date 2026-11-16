@@ -315,7 +315,8 @@ async function homeRight() {
   };
   drawTable();
   // players of the week
-  const since = new Date(Date.now() - 7 * 86400000).toISOString();
+  const [lastFin] = await run(sb.from("matches").select("utc_date").eq("status", "FINISHED").lte("utc_date", new Date().toISOString()).order("utc_date", { ascending: false }).limit(1));
+  const since = new Date(Math.min(Date.now(), lastFin ? new Date(lastFin.utc_date).getTime() + 86400000 : Date.now()) - 7 * 86400000).toISOString();
   run(sb.from("player_match_stats").select("rating,goals,assists,player_id,player:players(name),team:teams(name,short_name,crest_url),m:matches!inner(utc_date,competition_id)").gte("m.utc_date", since).not("rating", "is", null).order("rating", { ascending: false }).limit(6)).then((rows) => {
     const box = $("#potw"); if (!box) return;
     box.innerHTML = `<div class="card-h">Лучшие игроки недели<span class="more muted">Zone рейтинг</span></div>` + (rows.length ? rows.map((r) => `<a class="lead" href="#/player/${r.player_id}">${avatar(r.player_id, r.player?.name)}<div class="who"><div>${esc(r.player?.name)}</div><small>${esc([r.team?.short_name || r.team?.name, COMP[r.m.competition_id]?.short, r.goals ? r.goals + " г" : "", r.assists ? r.assists + " а" : ""].filter(Boolean).join(" · "))}</small></div>${ratingChip(r.rating)}</a>`).join("") + `<div style="height:8px"></div>` : `<div class="empty-note">Нет сыгранных матчей за 7 дней.</div>`);
