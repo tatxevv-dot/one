@@ -14,7 +14,7 @@ const COMPS = [
   { id: "NL", name: "Nations League", short: "ЛН", country: "Европа", logo: "data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Ccircle cx=%2732%27 cy=%2732%27 r=%2730%27 fill=%27%231b4fd8%27/%3E%3Cpath d=%27M32 12l6 12 13 2-9.500 9 2.500 13L32 41l-12 7 2.500-13L13 26l13-2z%27 fill=%27%23fff%27/%3E%3C/svg%3E" },
 ];
 const CUP_IDS = new Set(["CL", "NL"]);
-const COMP = Object.fromEntries(COMPS.map((c) => [c.id, c]));
+const COMP = new Proxy(Object.fromEntries(COMPS.map((c) => [c.id, c])), { get: (t, k) => t[k] || (typeof k === "string" && k !== "then" ? { id: k, name: k, short: k, country: "", logo: "" } : undefined) }); /* unknown competition ids never crash views */
 const TEAM_SEL = "id,name,short_name,crest_url";
 const M_SEL = `*,home:teams!matches_home_team_id_fkey(${TEAM_SEL}),away:teams!matches_away_team_id_fkey(${TEAM_SEL})`;
 
@@ -260,7 +260,7 @@ async function viewHome(params) {
         <div class="datebar"><a class="arrow" href="#/?d=${iso(prev)}" aria-label="Неделя назад">${ICON.chevL}</a><div class="dates">${dates}</div><a class="arrow" href="#/?d=${iso(next)}" aria-label="Неделя вперёд">${ICON.chevR}</a></div>
         <div class="feed-tools">
           <div class="seg" id="fseg"><button data-f="all">Все</button><button data-f="live"><span class="live-toggle"><span class="live-dot"></span>Live</span></button><button data-f="fav">Избранное</button></div>
-          <div class="seg" id="sseg" style="margin-left:auto"><button data-s="comp">По турнирам</button><button data-s="time">По времени</button></div>
+          <div class="seg" id="sseg" style="margin-left:auto"><button data-s="comp">Турниры</button><button data-s="time">Время</button></div>
         </div>
         <div id="feedBody">${skel(8)}</div>
       </div>

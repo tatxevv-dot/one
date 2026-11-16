@@ -47,7 +47,7 @@
   const mk = (cls) => { const s = document.createElement("select"); s.className = "zsel " + (cls || ""); return s; };
   const lab = (b) => b.textContent.trim().replace(/\s+/g, " ") || b.querySelector("img")?.alt || b.title || "–";
   function seg(el) {
-    if (el.dataset.z) return; el.dataset.z = 1;
+    if (el.dataset.z) return; el.dataset.z = 1; return; /* v7: chips stay chips (FotMob style) */
     const btns = $$("button", el); if (btns.length < 2) return;
     const sel = mk();
     btns.forEach((b, i) => { const o = document.createElement("option"); o.value = i; o.textContent = lab(b); sel.appendChild(o); });
