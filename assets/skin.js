@@ -85,13 +85,8 @@
     bar.querySelector("input").addEventListener("change", (e) => { if (e.target.value) location.hash = "#/?d=" + e.target.value; });
   }
   function localnav() {
-    $$(".localnav .tabs").forEach((t) => {
-      if (t.dataset.z) return; t.dataset.z = 1;
-      const sel = mk("ln");
-      $$("a", t).forEach((a) => { const o = document.createElement("option"); o.value = a.getAttribute("href"); o.textContent = a.textContent.trim(); o.selected = a.classList.contains("on"); sel.appendChild(o); });
-      sel.addEventListener("change", () => { location.hash = sel.value; });
-      t.after(sel);
-    });
+    const short = { "Личные встречи": "Встречи", "Удары и xG": "Удары", "xG-аналитика": "xG" };
+    $$(".localnav .tabs a").forEach((a) => { const t = a.textContent.trim(); if (short[t]) a.textContent = short[t]; });
   }
   const PRI = ["О", "Очки", "Рейтинг", "+/-", "Г", "А", "xG", "xPTS", "И", "Голы", "xGA", "Мин"];
   function tables() {

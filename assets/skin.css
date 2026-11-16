@@ -173,3 +173,26 @@ h1.title{font-size:24px;line-height:1.15;font-weight:800}
 .card:not([data-full]) .tbl-wrap{overflow-x:hidden}
 .tbl td.l{padding-right:12px}
 .tbl-more{display:block;width:100%;padding:13px;font-size:14px;font-weight:600;color:var(--accent);border-top:1px solid var(--line-2)}
+
+/* ===== v5: wordmark, 4-tab bar, league tiles, section tabs ===== */
+.logo{gap:2px;margin-right:16px}
+.logo span{font-size:22px;font-weight:800;letter-spacing:-.025em;line-height:1}
+.tabbar{grid-template-columns:repeat(4,1fr)}
+
+#fly-leagues .flyout-in{display:block;max-width:560px;padding:16px var(--gutter) 20px}
+#fly-leagues .flyout-in>div:not(:first-child){display:none}
+#fly-leagues .big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#fly-leagues .big a{flex-direction:column;justify-content:center;gap:8px;padding:14px 6px;background:var(--fill-2);border-radius:12px;font-size:13px;font-weight:600;text-align:center;line-height:1.2}
+#fly-leagues .big a img{width:36px;height:36px}
+#fly-leagues .big a:hover{background:var(--fill);color:var(--text)}
+#fly-leagues .big a:active{background:var(--fill)}
+
+.localnav .zsel.ln{display:none!important}
+@media(max-width:640px){
+  .localnav{position:static;margin:0 0 var(--gap);padding:0;border:0;background:none}
+  .localnav-in{display:block;height:auto;padding:0}
+  .localnav .ttl{display:none}
+  .localnav .tabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;overflow:visible}
+  .localnav .tabs a{display:block;text-align:center;padding:11px 4px;border-radius:10px;background:var(--bg-elev);box-shadow:none;font-size:13.5px;font-weight:600;color:var(--text-2)}
+  .localnav .tabs a.on{background:var(--text);color:var(--bg-elev);box-shadow:none}
+}
