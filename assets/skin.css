@@ -142,7 +142,7 @@ h1.title{font-size:24px;line-height:1.15;font-weight:800}
 .grid2>.card,.leaders-grid>.card,.leaders-grid .card:hover{border-radius:12px;box-shadow:none}
 .side>.card+.card{border-top:0;margin-top:var(--gap)}
 .hero{padding:18px 16px}
-.hero+div{display:none}
+.hero+div[style*="height:24px"]{display:none}
 .hero .meta{min-width:0}
 .hero .meta p{overflow-wrap:anywhere}
 

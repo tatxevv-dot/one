@@ -559,14 +559,3 @@ tr.fx{animation:fade .5s ease backwards;animation-delay:calc(var(--i,0) * 22ms)}
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
   img.crest:not(.ld),.avatar img:not(.ld){opacity:1;transform:none}
 }
-
-/* HLS stream */
-.stream-card{margin-top:16px;overflow:hidden}
-.stream-card .card-h{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
-.stream-srcs{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
-.stream-srcs .chip{border:0;border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;background:var(--fill,rgba(120,120,128,.12));color:inherit;cursor:pointer}
-.stream-srcs .chip.on{background:var(--accent,#0071e3);color:#fff}
-.stream-box{position:relative;background:#000;aspect-ratio:16/9}
-.stream-box video{position:absolute;inset:0;width:100%;height:100%;background:#000}
-.stream-note{padding:0 16px;font-size:13px}
-.stream-note:not(:empty){padding:10px 16px}
