@@ -1,0 +1,49 @@
+/* Zone — custom player skin */
+.stream-box.zp{position:relative;background:#000;aspect-ratio:16/9;overflow:hidden;border-radius:inherit;-webkit-tap-highlight-color:transparent;user-select:none}
+.stream-box.zp video{width:100%;height:100%;display:block;object-fit:contain;background:#000}
+.zp-ui{position:absolute;inset:0;color:#fff;font:500 13px/1 -apple-system,system-ui,sans-serif}
+.zp-ui button{all:unset;cursor:pointer;box-sizing:border-box}
+.zp-ui svg{width:100%;height:100%;display:block}
+
+/* центральная кнопка */
+.zp-big{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;padding:18px;border-radius:50%;background:rgba(20,20,22,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);opacity:0;transform:scale(.9);transition:.2s;pointer-events:none}
+.zp-big svg{padding-left:2px}
+.zp.paused .zp-big{opacity:1;transform:none;pointer-events:auto}
+.zp.buf .zp-big{opacity:0}
+
+/* буферизация */
+.zp-spin{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;opacity:0;animation:zpsp .8s linear infinite;pointer-events:none;transition:opacity .2s}
+.zp.buf .zp-spin{opacity:1}
+@keyframes zpsp{to{transform:rotate(360deg)}}
+
+/* нижняя панель */
+.zp-bar{position:absolute;left:0;right:0;bottom:0;padding:34px 10px 8px;background:linear-gradient(to top,rgba(0,0,0,.72),transparent);opacity:0;transform:translateY(6px);transition:.22s;pointer-events:none}
+.zp.show .zp-bar{opacity:1;transform:none;pointer-events:auto}
+.zp-prog{height:3px;margin:0 4px 6px;border-radius:2px;background:rgba(255,255,255,.28);overflow:hidden}
+.zp-prog i{display:block;height:100%;width:0;background:var(--accent,#0a6cff)}
+.zp-row{display:flex;align-items:center;gap:4px}
+.zp-sp{flex:1}
+.zp-b{height:36px;min-width:36px;padding:8px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.zp-b:active{background:rgba(255,255,255,.18)}
+.zp-q{padding:8px 10px}
+.zp-q svg{width:20px;height:20px;flex:none}
+.zp-q em{font-style:normal;font-size:12px;font-weight:600;white-space:nowrap}
+.zp-time{font-size:12px;opacity:.85;margin-left:6px;font-variant-numeric:tabular-nums}
+
+/* LIVE */
+.zp-live{display:inline-flex;align-items:center;gap:6px;margin-left:4px;padding:6px 10px;border-radius:8px;background:rgba(255,59,48,.92);font-size:11px;font-weight:700;letter-spacing:.06em}
+.zp-live span{width:6px;height:6px;border-radius:50%;background:#fff}
+.zp-live.off{background:rgba(255,255,255,.2)}
+.zp-live.off span{background:#ff3b30}
+
+/* меню качества */
+.zp-menu{position:absolute;right:10px;bottom:54px;min-width:150px;padding:6px;border-radius:14px;background:rgba(28,28,30,.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 8px 30px rgba(0,0,0,.45);max-height:70%;overflow:auto}
+.zp-menu[hidden]{display:none}
+.zp-mh{padding:8px 12px 6px;font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.06em}
+.zp-menu button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:11px 12px;border-radius:9px;font-size:14px}
+.zp-menu button:active{background:rgba(255,255,255,.14)}
+.zp-menu button b{opacity:0;color:var(--accent,#0a6cff)}
+.zp-menu button.on b{opacity:1}
+
+@media (hover:hover){.zp-b:hover{background:rgba(255,255,255,.14)}}
+@media (max-width:520px){.zp-time{display:none}.zp-q em{font-size:11px}}
