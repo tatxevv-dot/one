@@ -74,6 +74,6 @@
   let t = 0; const kick = (force) => { clearTimeout(t); t = setTimeout(() => render(force), 60); };
   new MutationObserver(() => kick(false)).observe($("#app"), { childList: true });
   addEventListener("hashchange", () => kick(false));
-  sbAuth.auth.onAuthStateChange(() => { setTimeout(async () => { await checkAdmin(); kick(true); }, 0); });
+  sbAuth.auth.onAuthStateChange(() => { setTimeout(async () => { const was = isAdmin + "|" + uid; await checkAdmin(); if (was !== isAdmin + "|" + uid) kick(true); }, 0); });
   checkAdmin().then(() => kick(true));
 })();

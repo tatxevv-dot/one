@@ -711,6 +711,28 @@ function applyMatchColors(m) {
   if (a) root.setProperty("--home", a); if (b) root.setProperty("--away", b);
 }
 
+/* Мягкое обновление матча: страница не перерисовывается, подменяются только шапка и содержимое вкладки.
+   Всё остальное (в т.ч. плеер трансляции) остаётся нетронутым, скролл не сбрасывается. */
+let softBusy = false;
+async function softMatch(id, tab) {
+  const live = $("#app"), cont = $("#mcontent"), wrap = live && $(".wrap", live), card = wrap && $(".card", wrap), nav = wrap && $(".localnav", wrap);
+  if (softBusy || !cont || !card || !nav || document.hidden) return;
+  softBusy = true;
+  const tmp = document.createElement("div"); tmp.id = "app"; tmp.style.cssText = "position:fixed;left:-99999px;top:0;width:900px;visibility:hidden";
+  live.id = "app_live"; cont.id = "mcontent_live"; document.body.appendChild(tmp);
+  try {
+    memo.clear(); killCharts();
+    await viewMatch(id, tab);
+    const nw = $(".wrap", tmp);
+    if (nw && location.hash.startsWith("#/match/" + id) && cont.isConnected) {
+      card.innerHTML = $(".card", nw).innerHTML;
+      const nn = $(".localnav", nw); if (nn) nav.innerHTML = nn.innerHTML;
+      cont.replaceChildren(...$("#mcontent", tmp).childNodes);
+    }
+  } catch (e) { console.warn("[soft]", e); }
+  finally { live.id = "app"; cont.id = "mcontent"; tmp.remove(); softBusy = false; }
+}
+
 async function viewMatch(id, tab) {
   const [m] = await run(sb.from("matches").select(M_SEL).eq("id", id));
   if (!m) { app().innerHTML = `<div class="wrap"><div class="card"><div class="empty-note">Матч не найден.</div></div></div>`; return; }
@@ -748,7 +770,7 @@ async function viewMatch(id, tab) {
   else if (tab === "shots") matchShots(ctx, box);
   else if (tab === "table") { const st = await getStandings(m.competition_id); const cms = await getCompMatches(m.competition_id); box.innerHTML = `<div class="card">${standingsTable(st.filter((r) => !r.group_name || st.find((x) => x.team_id === m.home_team_id)?.group_name === r.group_name), null, { forms: formsFrom(cms) }).replace(new RegExp(`(<tr class=")(" onclick="location.hash='#/team/(${m.home_team_id}|${m.away_team_id})')`, "g"), "$1hl$2")}</div>`; }
   else if (tab === "h2h") matchH2H(ctx, box);
-  if (live) refreshTimer = setInterval(() => { memo.clear(); route(); }, 60000);
+  if (live) { clearInterval(refreshTimer); refreshTimer = setInterval(() => softMatch(id, tab), 15000); }
 }
 function noData(msg) { return `<div class="card"><div class="empty-note" style="padding:28px 18px;text-align:center">${msg}</div></div>`; }
 function matchFacts({ m, evs, H, A, pms }, box) {
