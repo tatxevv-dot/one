@@ -31,16 +31,7 @@ const fmtDay = (d) => new Date(d).toLocaleDateString("ru-RU", { weekday: "short"
 const initials = (n) => (n || "?").split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 const headshot = (id) => `https://a.espncdn.com/i/headshots/soccer/players/full/${id}.png`;
 const crest = (t, cls = "crest") => `<img class="${cls}" src="${esc(t?.crest_url || "")}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
-const avatar = (id, name, cls = "avatar") => `<span class="${cls}"><img src="${headshot(id)}" data-pid="${id}" alt="" loading="lazy" onerror="zFace(this)">${esc(initials(name))}</span>`;
-/* запасной источник фото: fotmob_id из таблицы players (грузится один раз) */
-window.FM = {};
-window.FMready = (async () => { try { const rows = await fetchAll(() => sb.from("players").select("id,fotmob_id").not("fotmob_id", "is", null)); rows.forEach((r) => { FM[r.id] = r.fotmob_id; }); } catch (e) { console.warn("[faces]", e.message); } })();
-window.zFace = async (img) => {
-  if (img.dataset.fb) { img.remove(); return; }
-  img.dataset.fb = "1"; await FMready;
-  const f = FM[img.dataset.pid];
-  if (f) img.src = `https://images.fotmob.com/image_resources/playerimages/${f}.png`; else img.remove();
-};
+const avatar = (id, name, cls = "avatar") => `<span class="${cls}"><img src="${headshot(id)}" alt="" loading="lazy" onerror="this.remove()">${esc(initials(name))}</span>`;
 const ratingCls = (r) => (r == null ? "r-na" : r >= 8 ? "r-elite" : r >= 7 ? "r-good" : r >= 6 ? "r-ok" : "r-bad");
 const ratingChip = (r) => `<span class="rating ${ratingCls(r)}">${r == null ? "–" : Number(r).toFixed(1)}</span>`;
 const store = {
@@ -206,25 +197,8 @@ const skel = (n = 6) => Array.from({ length: n }, () => `<div class="sk sk-row">
 const localnav = (title, tabs, cur, base) => `<div class="localnav"><div class="localnav-in"><div class="ttl">${title}</div><nav class="tabs">${tabs.map(([k, l]) => `<a href="${base}/${k}" class="${k === cur ? "on" : ""}">${l}</a>`).join("")}</nav></div></div>`;
 
 /* ---------------- match row ---------------- */
-/* Минута матча: база обновляется раз в ~10 мин, поэтому дотикиваем на клиенте от момента синка */
-const _seen = new Map();
-function liveClockText(clock, at) {
-  const mt = /^(\d+)'?\s*(?:\+\s*(\d+)'?)?/.exec(clock || ""); if (!mt) return clock;
-  let base = +mt[1], extra = +(mt[2] || 0);
-  const add = Math.max(0, Math.min(15, Math.floor((Date.now() - at) / 60000)));
-  if (!add) return clock;
-  if (extra) extra += add; else { base += add; const cap = base <= 45 + add && +mt[1] <= 45 ? 45 : 90; if (base > cap) { extra = base - cap; base = cap; } }
-  return extra ? `${base}'+${extra}'` : `${base}'`;
-}
-function liveClock(m) {
-  const c = m.raw?.clock; if (!c || c === "0'") return "LIVE";
-  let at = m.raw?.clock_at ? Date.parse(m.raw.clock_at) : NaN;
-  if (isNaN(at)) { const k = m.id, s = _seen.get(k); if (s && s.c === c) at = s.t; else { at = Date.now(); _seen.set(k, { c, t: at }); } }
-  return `<span class="lclk" data-c="${esc(c)}" data-at="${at}">${esc(liveClockText(c, at))}</span>`;
-}
-setInterval(() => document.querySelectorAll(".lclk").forEach((e) => { e.textContent = liveClockText(e.dataset.c, +e.dataset.at); }), 15000);
 function statusLabel(m) {
-  if (m.status === "LIVE") return liveClock(m);
+  if (m.status === "LIVE") return m.raw?.clock && m.raw.clock !== "0'" ? m.raw.clock : "LIVE";
   if (m.status === "PAUSED") return "Перерыв";
   if (m.status === "FINISHED") return m.raw?.detail && /AET|Pens|ДВ|пен/i.test(m.raw.detail) ? m.raw.detail : "Конец";
   if (m.status === "POSTPONED") return "Перенесён";
@@ -240,7 +214,7 @@ function matchRow(m, opts = {}) {
   const st = played || live ? statusLabel(m) : opts.showDate ? fmtDate(m.utc_date) : "";
   return `<a class="mrow ${live ? "live" : ""}" href="#/match/${m.id}">
     <div class="tm h ${hw ? "win" : ""}"><span>${esc(m.home?.short_name || m.home?.name)}</span>${crest(m.home)}</div>
-    <div class="mid">${mid}<div class="st">${m.status === "LIVE" ? st : esc(st)}</div></div>
+    <div class="mid">${mid}<div class="st">${esc(st)}</div></div>
     <div class="tm ${aw ? "win" : ""}">${crest(m.away)}<span>${esc(m.away?.short_name || m.away?.name)}</span></div>
     <button class="fav ${fav ? "on" : ""}" data-fav="${m.id}" aria-label="Отслеживать матч">${fav ? ICON.star : ICON.starO}</button>
   </a>`;
@@ -875,7 +849,7 @@ function matchLineups({ m, pms, evs, H, A }, box) {
   if (!pms.length) { box.innerHTML = noData("Составов пока нет"); return; }
   const goalsBy = {}, cardsBy = {};
   for (const e of evs) { if (!e.player_id) continue; if (["goal", "penalty_goal"].includes(e.type)) goalsBy[e.player_id] = (goalsBy[e.player_id] || 0) + 1; if (e.type === "yellow" || e.type === "red") cardsBy[e.player_id] = e.type; }
-  const dot = (p, x, y) => `<a class="pl-dot" href="#/player/${p.player_id}" style="left:${x}%;top:${y}%"><span class="rt">${p.rating ? ratingChip(p.rating) : ""}</span><span class="badges">${goalsBy[p.player_id] ? `<span class="gball">${ICON.ball}${goalsBy[p.player_id] > 1 ? goalsBy[p.player_id] : ""}</span>` : ""}${cardsBy[p.player_id] ? `<span class="${cardsBy[p.player_id] === "red" ? "card-r" : "card-y"}" style="padding:0;width:8px;height:11px"></span>` : ""}${p.raw?.subOut ? `<span style="color:#ff3b30">↓${p.raw.outM ?? ""}</span>` : ""}</span><span class="face"><img src="${headshot(p.player_id)}" data-pid="${p.player_id}" alt="" onerror="zFace(this)">${esc(p.raw?.jersey || "")}</span><span class="nm">${esc(p.player?.raw?.last || p.player?.name?.split(" ").slice(-1)[0] || "")}</span></a>`;
+  const dot = (p, x, y) => `<a class="pl-dot" href="#/player/${p.player_id}" style="left:${x}%;top:${y}%"><span class="rt">${p.rating ? ratingChip(p.rating) : ""}</span><span class="badges">${goalsBy[p.player_id] ? `<span class="gball">${ICON.ball}${goalsBy[p.player_id] > 1 ? goalsBy[p.player_id] : ""}</span>` : ""}${cardsBy[p.player_id] ? `<span class="${cardsBy[p.player_id] === "red" ? "card-r" : "card-y"}" style="padding:0;width:8px;height:11px"></span>` : ""}${p.raw?.subOut ? `<span style="color:#ff3b30">↓${p.raw.outM ?? ""}</span>` : ""}</span><span class="face"><img src="${headshot(p.player_id)}" alt="" onerror="this.remove()">${esc(p.raw?.jersey || "")}</span><span class="nm">${esc(p.player?.raw?.last || p.player?.name?.split(" ").slice(-1)[0] || "")}</span></a>`;
   const half = (tid, top) => {
     const lines = layoutXI(pms.filter((p) => p.team_id === tid), (tid === m.home_team_id ? H : A)?.raw?.formation);
     return lines.map((ln, li) => ln.map((p, pi) => { const y = 4 + (li / Math.max(1, lines.length - 1)) * 40; const x = ((pi + 1) / (ln.length + 1)) * 100; return dot(p, top ? 100 - x : x, top ? y + 1 : 100 - y - 1); }).join("")).join("");

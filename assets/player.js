@@ -1,4 +1,4 @@
-/* Zone — custom stream player UI (window.zpAttach). Подключается из admin.js.
+/* Zone — custom stream player UI. Overrides mountStream from app.js.
    Native system player is used ONLY in fullscreen. */
 (function () {
   const S = (d) => `<svg viewBox="0 0 24 24" fill="currentColor">${d}</svg>`;
@@ -11,7 +11,8 @@
     fs: S('<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
   };
 
-  function setupUI(box, v, getHls) {
+  function setupUI(el, v, getHls) {
+    const box = el.querySelector(".stream-box");
     v.controls = false;
     v.removeAttribute("controls");
     box.classList.add("zp");
@@ -145,6 +146,34 @@
     return ui;
   }
 
-  /* box: контейнер (.st-box), v: <video>, getHls: () => экземпляр Hls | null */
-  window.zpAttach = function (box, v, getHls) { return setupUI(box, v, getHls || (() => null)); };
+  window.mountStream = async function (id, streams, slot) {
+    if (!slot) return;
+    const urls = streams.map((s) => s.url).join("|");
+    if (!streams.length) { if (STREAM.id === id) destroyStream(); return; }
+    if (STREAM.id === id && STREAM.urls === urls && STREAM.el) {
+      slot.replaceWith(STREAM.el);
+      const v = STREAM.el.querySelector("video");
+      if (STREAM.want && v.paused) v.play().catch(() => {});
+      return;
+    }
+    destroyStream();
+    const el = document.createElement("div");
+    el.className = "card stream-card"; el.id = "mstream";
+    el.innerHTML = `<div class="card-h">Трансляция<span class="live-dot" style="margin-left:8px"></span>${streams.length > 1 ? `<span class="stream-srcs">${streams.map((s, i) => `<button class="chip${i ? "" : " on"}" data-i="${i}">${esc(s.label || "Источник " + (i + 1))}</button>`).join("")}</span>` : ""}</div>
+      <div class="stream-box"><video playsinline autoplay muted preload="auto"></video></div><div class="stream-note muted"></div>`;
+    slot.replaceWith(el);
+    Object.assign(STREAM, { id, el, urls });
+    const v = el.querySelector("video"), note = el.querySelector(".stream-note");
+    STREAM.want = true;
+    v.addEventListener("play", () => { STREAM.want = true; });
+    v.addEventListener("pause", () => { if (el.isConnected && !document.fullscreenElement && !v.webkitDisplayingFullscreen) STREAM.want = false; });
+    const ui = setupUI(el, v, () => STREAM.hls);
+    try { await loadHls(); } catch (e) {}
+    if (STREAM.el !== el) return;
+    playSource(v, streams[0].url, note); ui.rebind();
+    el.querySelectorAll(".stream-srcs button").forEach((b) => b.onclick = () => {
+      el.querySelectorAll(".stream-srcs button").forEach((x) => x.classList.toggle("on", x === b));
+      playSource(v, streams[+b.dataset.i].url, note); ui.rebind(); v.play().catch(() => {});
+    });
+  };
 })();
