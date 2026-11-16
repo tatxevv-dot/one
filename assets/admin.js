@@ -34,6 +34,24 @@
       play(0);
       $$(".st-srcs button", top).forEach((b) => b.onclick = () => { $$(".st-srcs button", top).forEach((x) => x.classList.toggle("on", x === b)); play(+b.dataset.i); });
     }
+    else {
+      /* ---- upcoming match, no stream yet: placeholder ---- */
+      let mt = null;
+      try { [mt] = await run(sb.from("matches").select("utc_date,status").eq("id", id)); } catch (e) {}
+      if (matchId() !== id || !$("#app .wrap")) return;
+      const start = mt ? new Date(mt.utc_date) : null;
+      if (mt && start && mt.status === "SCHEDULED" && start.getTime() > Date.now()) {
+        const top = document.createElement("div"); top.id = "mstream-top"; top.className = "card stream-card";
+        top.innerHTML = `<div class="card-h">Трансляция</div><div class="st-item"><div class="st-box"><button type="button" class="st-ph" aria-label="Трансляция"><span class="st-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></span><span class="st-ph-msg" role="status" aria-live="polite"></span></button></div></div>`;
+        if (nav) nav.before(top); else w.appendChild(top);
+        const btn = $(".st-ph", top), out = $(".st-ph-msg", top);
+        btn.onclick = () => {
+          const left = start.getTime() - Date.now(), hhmm = start.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+          out.textContent = left <= 600000 ? "Трансляция скоро появится" : "Трансляция появится за 10 минут до начала матча · начало в " + hhmm;
+          btn.classList.add("shown");
+        };
+      }
+    }
     if (!isAdmin) return;
 
     /* ---- admin panel: at the bottom ---- */
