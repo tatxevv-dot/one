@@ -891,6 +891,7 @@ async function viewStats(c, sKey) {
   app().innerHTML = `<div class="wrap"><div class="card"><div class="hero"><div class="meta"><div class="eyebrow">Топ-5 лиг + Лига чемпионов · 2026/27</div><h1 class="title">Статистика</h1><p>Лидеры по голам, xG, ассистам, рейтингу и эффективности.</p></div></div>
     <div class="feed-tools" style="padding:20px 28px 22px"><div class="pills" id="cpills"><a class="pill ${!comp ? "on" : ""}" href="#/stats"><svg class="pl-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>Все турниры</a>${COMPS.map((x) => `<a class="pill ${comp === x.id ? "on" : ""}" href="#/stats?c=${x.id}"><img class="pl-logo" src="${x.logo}" alt="" onerror="this.remove()">${x.short}</a>`).join("")}</div></div></div>
     <div class="section-gap"></div><div id="sbody">${skel(10)}</div></div>`;
+  { const cp = $("#cpills"), on = cp && cp.querySelector(".pill.on"); if (on) cp.scrollLeft = Math.max(0, on.offsetLeft - (cp.clientWidth - on.offsetWidth) / 2); }
   const ps = await getPlayerSeason(comp);
   const agg = comp ? ps : Object.values(ps.reduce((o, r) => { const a = (o[r.player_id] ??= { ...r, goals: 0, assists: 0, xg: 0, xa: 0, shots: 0, shots_on_target: 0, minutes: 0, apps: 0, yellow: 0, rs: 0, rn: 0 }); for (const k of ["goals", "assists", "shots", "shots_on_target", "minutes", "apps", "yellow"]) a[k] += r[k]; a.xg += +r.xg; a.xa += +r.xa; if (r.rating) { a.rs += r.rating * r.apps; a.rn += r.apps; } a.rating = a.rn ? a.rs / a.rn : null; return o; }, {}));
   const m90 = (r) => r.minutes >= 450;
@@ -919,13 +920,7 @@ async function viewStats(c, sKey) {
     return;
   }
   const cardOf = (ct) => `<a class="card scard" href="${base}${comp ? "&" : "?"}s=${ct.k}"><div class="card-h">${ct.t}${ct.sub ? ` <small class="muted">${ct.sub}</small>` : ""}<svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></div>${rank(ct, 3).map(({ r, v }, i) => `<div class="lead">${avatar(r.player_id, r.name)}<div class="who"><div>${esc(r.name)}</div><small>${esc(r.team_short)}</small></div><span class="v${i ? "" : " top"}">${num(v, ct.d || 0)}</span></div>`).join("")}<div style="height:8px"></div></a>`;
-  $("#sbody").innerHTML = `<div class="s-chips" id="sgroups"><button type="button" class="pill on" data-g="">Всё</button>${GROUPS.map(([t], i) => `<button type="button" class="pill" data-g="${i}">${t}</button>`).join("")}</div>
-    ${GROUPS.map(([t, ks], i) => `<section class="s-grp" data-g="${i}"><h2 class="s-h">${t}</h2><div class="leaders-grid">${ks.map((k) => cardOf(CATS.find((x) => x.k === k))).join("")}</div></section>`).join("")}`;
-  $("#sgroups").addEventListener("click", (e) => {
-    const b = e.target.closest("button"); if (!b) return;
-    $$("#sgroups .pill").forEach((x) => x.classList.toggle("on", x === b));
-    $$(".s-grp").forEach((g) => { g.style.display = !b.dataset.g || g.dataset.g === b.dataset.g ? "" : "none"; });
-  });
+  $("#sbody").innerHTML = `${GROUPS.map(([t, ks], i) => `<section class="s-grp" data-g="${i}"><h2 class="s-h">${t}</h2><div class="leaders-grid">${ks.map((k) => cardOf(CATS.find((x) => x.k === k))).join("")}</div></section>`).join("")}`;
 }
 
 /* ================= COMPARE ================= */
