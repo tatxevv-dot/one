@@ -1,6 +1,6 @@
 /* Zone skin v3 — flat, connected, sports-app look. Loaded after style.css */
 :root{
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font:"Onest",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --bg:#f1f2f4;--bg-elev:#fff;--bg-sunk:#f6f7f8;--fill:#e9ebee;--fill-2:#f3f4f6;
   --text:#111418;--text-2:#5d6673;--text-3:#8b929d;
   --line:#dcdfe4;--line-2:#e8eaed;
