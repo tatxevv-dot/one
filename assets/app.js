@@ -550,6 +550,7 @@ async function leagueXG(id, box) {
 async function viewTeam(id, tab) {
   const [team] = await run(sb.from("teams").select("*").eq("id", id));
   if (!team) { app().innerHTML = `<div class="wrap"><div class="card"><div class="empty-note">Команда не найдена.</div></div></div>`; return; }
+  setTC(team);
   const comps = await run(sb.from("standings").select("*,team:teams(" + TEAM_SEL + ")").eq("team_id", id));
   const league = comps.find((c) => !CUP_IDS.has(c.competition_id)) || comps[0];
   const fav = favTeams().some((t) => t.id === id);
@@ -607,15 +608,16 @@ async function teamSquad(id, box) {
 async function teamStats(team, comps, box) {
   const parts = await Promise.all(comps.map(async (c) => {
     const all = await getTeamSeason(c.competition_id); const me = all.find((t) => t.team_id === team.id); if (!me) return "";
-    const metrics = [["xg", "xG за матч", 1, 2], ["xga", "xGA за матч", -1, 2], ["goals_for", "Голы за матч", 1, 2], ["goals_against", "Пропущено за матч", -1, 2], ["shots", "Удары за матч", 1, 1], ["shots_on_target", "Удары в створ", 1, 1], ["possession", "Владение, %", 1, 1, true], ["pass_accuracy", "Точность паса, %", 1, 1, true], ["passes_avg", "Пасы за матч", 1, 0, true], ["tackles", "Отборы за матч", 1, 1], ["interceptions", "Перехваты за матч", 1, 1], ["corners", "Угловые за матч", 1, 1], ["fouls", "Фолы за матч", -1, 1]];
-    const val = (t, k, abs) => (abs ? +t[k] : t[k] / t.played);
+    const metrics = [["xg", "xG за матч", 1, 2], ["xga", "xGA за матч", -1, 2], ["goals_for", "Голы за матч", 1, 2], ["goals_against", "Пропущено за матч", -1, 2], ["shots", "Удары за матч", 1, 1], ["shots_on_target", "Удары в створ", 1, 1], ["possession", "Владение, %", 1, 1, true], ["pass_accuracy", "Точность паса, %", 1, 1, true], ["passes_avg", "Пасы за матч", 1, 0, true], ["tackles", "Отборы за матч", 1, 1], ["interceptions", "Перехваты за матч", 1, 1], ["corners", "Угловые за матч", 1, 1], ["fouls", "Фолы за матч", -1, 1], ["xgd", "Разница xG за матч", 1, 2], ["sot_pct", "Точность ударов, %", 1, 1], ["conv", "Реализация, % (голы/удары)", 1, 1]];
+    const val = (t, k, abs) => k === "xgd" ? (t.xg - t.xga) / t.played : k === "sot_pct" ? (t.shots ? t.shots_on_target / t.shots * 100 : 0) : k === "conv" ? (t.shots ? t.goals_for / t.shots * 100 : 0) : (abs ? +t[k] : t[k] / t.played);
     return `<div class="card"><div class="card-h"><img src="${COMP[c.competition_id].logo}" class="crest" alt="">${COMP[c.competition_id].name}<span class="more muted">перцентиль среди ${all.length} команд</span></div><div class="card-b">
       ${metrics.map(([k, l, dir, d, abs]) => { const v = val(me, k, abs); const arr = all.map((t) => val(t, k, abs)); const pct = Math.round((arr.filter((x) => (dir > 0 ? x < v : x > v)).length / Math.max(1, arr.length - 1)) * 100); return pctRow(l, num(v, d), pct); }).join("")}
     </div></div>`;
   }));
   box.innerHTML = parts.join("") || `<div class="card"><div class="empty-note">Нет данных.</div></div>`;
 }
-function pctColor(p) { return p >= 80 ? "#30b14c" : p >= 60 ? "#7ac943" : p >= 40 ? "#e5a00d" : p >= 20 ? "#ff8a3d" : "#e5484d"; }
+function pctColor() { return "var(--tc)"; }
+function setTC(t) { const c = teamColor(t); document.documentElement.style.setProperty("--tc", c ? fitColor(c) : "var(--accent,#0a6cff)"); }
 const pctRow = (l, v, p) => `<div class="pct-row"><div>${l}<div class="val">${v}</div></div><div class="pct-bar"><i style="width:${Math.max(3, p)}%;background:${pctColor(p)}"></i></div><div class="n">${p}</div></div>`;
 
 /* ================= PLAYER ================= */
@@ -628,7 +630,7 @@ async function viewPlayer(id) {
     run(sb.from("match_events").select("match_id,minute,type,raw,detail").eq("player_id", id).in("type", ["goal", "penalty_goal", "penalty_missed", "shot_on", "shot_off", "shot_blocked", "woodwork"])),
   ]);
   const tot = seasons.reduce((a, s) => { for (const k of ["apps", "starts", "minutes", "goals", "assists", "shots", "shots_on_target", "yellow", "red"]) a[k] = (a[k] || 0) + s[k]; a.xg = (a.xg || 0) + +s.xg; a.xa = (a.xa || 0) + +s.xa; if (s.rating) { a.rs = (a.rs || 0) + s.rating * s.apps; a.rn = (a.rn || 0) + s.apps; } return a; }, {});
-  const g = posGroup(p.position);
+  const g = posGroup(p.position); setTC(p.team);
   app().innerHTML = `<div class="wrap">
     <div class="card"><div class="hero">${avatar(p.id, p.name, "avatar xl")}<div class="meta"><div class="eyebrow"><a class="link" href="#/team/${p.team?.id}">${esc(p.team?.name || "")}</a> · ${esc(p.position || POS_RU[g])}${p.raw?.jersey ? " · №" + esc(p.raw.jersey) : ""}</div><h1 class="title">${esc(p.name)}</h1></div>
       <div class="hero-actions"><a class="btn" href="#/compare?a=${p.id}">Сравнить</a></div></div>
@@ -637,7 +639,7 @@ async function viewPlayer(id) {
         <div class="tile"><div class="v">${tot.goals || 0}</div><div class="k">Голы</div></div><div class="tile"><div class="v">${tot.assists || 0}</div><div class="k">Ассисты</div></div>
         <div class="tile"><div class="v">${num(tot.xg || 0, 2)}</div><div class="k">xG</div></div><div class="tile"><div class="v">${num(tot.xa || 0, 2)}</div><div class="k">xA</div></div>
         <div class="tile"><div class="v">${tot.shots || 0}</div><div class="k">Удары (${tot.shots_on_target || 0} в створ)</div></div>
-        <div class="tile"><div class="v">${tot.rn ? num(tot.rs / tot.rn, 2) : "–"}</div><div class="k">Средний рейтинг</div></div>
+        <div class="tile"><div class="v">${tot.rn ? num(tot.rs / tot.rn, 2) : "–"}</div><div class="k">Средний рейтинг</div></div><div class="tile"><div class="v">${num(p90(tot.goals || 0, tot.minutes || 0), 2)}</div><div class="k">Голы /90</div></div><div class="tile"><div class="v">${num((tot.xg || 0) + (tot.xa || 0), 2)}</div><div class="k">xG+xA</div></div><div class="tile"><div class="v">${tot.shots ? Math.round(tot.shots_on_target / tot.shots * 100) + "%" : "–"}</div><div class="k">Точность ударов</div></div><div class="tile"><div class="v">${tot.yellow || 0}/${tot.red || 0}</div><div class="k">Жёлтые / красные</div></div>
       </div></div></div>
     <div class="section-gap"></div>
     <div class="grid2"><div class="card" id="pctCard"><div class="card-h">Перцентили</div>${skel(6)}</div>
@@ -661,7 +663,7 @@ async function viewPlayer(id) {
 }
 function pctMetrics(g) {
   const per = (k) => (r) => p90(+r[k], r.minutes);
-  const base = [["Голы /90", per("goals"), 2], ["xG /90", per("xg"), 2], ["Удары /90", per("shots"), 2], ["В створ /90", per("shots_on_target"), 2], ["Ассисты /90", per("assists"), 2], ["xA /90", per("xa"), 2], ["Фолы на нём /90", per("fouls_won"), 2], ["one рейтинг", (r) => +r.rating || 0, 2]];
+  const base = [["Голы /90", per("goals"), 2], ["xG /90", per("xg"), 2], ["Удары /90", per("shots"), 2], ["В створ /90", per("shots_on_target"), 2], ["Ассисты /90", per("assists"), 2], ["xA /90", per("xa"), 2], ["xG+xA /90", (r) => p90(+r.xg + +r.xa, r.minutes), 2], ["Точность ударов, %", (r) => (r.shots ? r.shots_on_target / r.shots * 100 : 0), 0], ["Фолы на нём /90", per("fouls_won"), 2], ["Фолы /90 (инв.)", (r) => -p90(+r.fouls, r.minutes), 2], ["one рейтинг", (r) => +r.rating || 0, 2]];
   if (g === "GK") return [["Сейвы /90", per("saves"), 2], ["Пропущено /90 (инв.)", (r) => -p90(r.conceded, r.minutes), 2], ["% отражённых", (r) => (r.shots_faced ? (r.saves / r.shots_faced) * 100 : 0), 0], ["one рейтинг", (r) => +r.rating || 0, 2]];
   return base;
 }
@@ -748,7 +750,7 @@ async function viewMatch(id, tab) {
   const goals = evs.filter((e) => ["goal", "penalty_goal", "own_goal"].includes(e.type));
   const scorerList = (tid) => goals.filter((g) => (g.type === "own_goal" ? g.team_id !== tid : g.team_id === tid)).map((g) => `${esc(g.raw?.names?.[0] || "")} ${g.raw?.clock || g.minute + "'"}${g.type === "penalty_goal" ? " (пен.)" : g.type === "own_goal" ? " (авто)" : ""}`).join("<br>");
   // own goal team_id in ESPN is the scoring player's team (conceding side) — handle both
-  const tabs = [["facts", "Обзор"], ["stats", "Статистика"], ["lineups", "Составы"], ["shots", "Удары и xG"], ["table", "Таблица"], ["h2h", "Личные встречи"]];
+  const tabs = [["facts", "Детали"], ["lineups", "Составы"], ["stats", "Статистика"], ["comm", "Комментарии"], ["table", "Таблица"], ["h2h", "Матчи"]];
   const H = ts.find((t) => t.team_id === m.home_team_id), A = ts.find((t) => t.team_id === m.away_team_id);
   app().innerHTML = `<div class="wrap">
     <div class="card"><div class="mh">
@@ -760,7 +762,7 @@ async function viewMatch(id, tab) {
       <div class="mh-info">${m.raw?.venue ? `<span>${ICON.pin}${esc(m.raw.venue)}${m.raw.city ? ", " + esc(m.raw.city) : ""}</span>` : ""}${m.raw?.attendance ? `<span>${ICON.users}${Number(m.raw.attendance).toLocaleString("ru-RU")}</span>` : ""}${m.raw?.referee ? `<span>${ICON.whistle}${esc(m.raw.referee)}</span>` : ""}${H && A ? `<span><b>xG</b>&nbsp;${num(H.xg, 2)} – ${num(A.xg, 2)}</span>` : ""}</div>
     </div></div>
     ${localnav(`${crest(m.home, "crest sm")}<span class="t">${esc(m.home.short_name)} ${played ? m.home_goals + "–" + m.away_goals : "–"} ${esc(m.away.short_name)}</span>${crest(m.away, "crest sm")}`, tabs, tab, `#/match/${id}`)}
-    <div id="mcontent"></div></div>`;
+    <div id="mcontent"></div><div id="polls"></div></div>`;
   $(".localnav").style.marginTop = "16px";
   const box = $("#mcontent");
   const ctx = { m, ts, pms, evs, H, A };
@@ -768,8 +770,10 @@ async function viewMatch(id, tab) {
   else if (tab === "stats") matchStats(ctx, box);
   else if (tab === "lineups") matchLineups(ctx, box);
   else if (tab === "shots") matchShots(ctx, box);
+  else if (tab === "comm") matchComm(ctx, box);
   else if (tab === "table") { const st = await getStandings(m.competition_id); const cms = await getCompMatches(m.competition_id); box.innerHTML = `<div class="card">${standingsTable(st.filter((r) => !r.group_name || st.find((x) => x.team_id === m.home_team_id)?.group_name === r.group_name), null, { forms: formsFrom(cms) }).replace(new RegExp(`(<tr class=")(" onclick="location.hash='#/team/(${m.home_team_id}|${m.away_team_id})')`, "g"), "$1hl$2")}</div>`; }
   else if (tab === "h2h") matchH2H(ctx, box);
+  if (tab === "facts") matchPolls(m);
   if (live) { clearInterval(refreshTimer); refreshTimer = setInterval(() => softMatch(id, tab), 15000); }
 }
 function noData(msg) { return `<div class="card"><div class="empty-note" style="padding:28px 18px;text-align:center">${msg}</div></div>`; }
@@ -798,20 +802,46 @@ function matchFacts({ m, evs, H, A, pms }, box) {
   }
   const best = [...pms].filter((p) => p.rating).sort((a, b) => b.rating - a.rating)[0];
   const hs = H?.raw?.s || {}, as = A?.raw?.s || {};
-  box.innerHTML = `<div class="cols two"><main><div class="card"><div class="card-h">События матча</div><div class="card-b"><div class="tl">${tl || `<div class="empty-note">Событий пока нет.</div>`}</div></div></div>
+  box.innerHTML = `<div class="cols two"><main>${momentum(m, evs)}<div class="card"><div class="card-h">События матча</div><div class="card-b"><div class="tl">${tl || `<div class="empty-note">Событий пока нет.</div>`}</div></div></div>
     <div class="section-gap"></div><div class="card"><div class="card-h">xG по ходу матча</div><div class="chart-box sm"><canvas id="xgRace"></canvas></div></div></main>
     <aside class="side">
       ${best ? `<div class="card"><div class="card-h">Игрок матча</div><a class="lead" href="#/player/${best.player_id}" style="padding-bottom:16px">${avatar(best.player_id, best.player?.name)}<div class="who"><div><b>${esc(best.player?.name)}</b></div><small>${best.goals ? best.goals + " г · " : ""}${best.assists ? best.assists + " а · " : ""}${best.minutes}'</small></div>${ratingChip(best.rating)}</a></div>` : ""}
+      <div class="card"><div class="card-h">Информация</div><div class="card-b"><dl class="infol"><dt>Дата</dt><dd>${fmtDay(m.utc_date)}, ${fmtTime(m.utc_date)}</dd><dt>Турнир</dt><dd>${esc(COMP[m.competition_id]?.name || "")}</dd>${m.raw?.venue ? `<dt>Стадион</dt><dd>${esc(m.raw.venue)}${m.raw.city ? ", " + esc(m.raw.city) : ""}</dd>` : ""}${m.raw?.referee ? `<dt>Судья</dt><dd>${esc(m.raw.referee)}</dd>` : ""}${m.raw?.attendance ? `<dt>Зрители</dt><dd>${Number(m.raw.attendance).toLocaleString("ru-RU")}</dd>` : ""}</dl></div></div>
       ${H && A ? `<div class="card"><div class="card-h">Главная статистика<a class="more" href="#/match/${m.id}/stats">Вся</a></div><div class="card-b">
-        <div class="eyebrow" style="text-align:center">Владение мячом</div><div class="poss"><div class="ph" style="width:${H.possession}%">${num(H.possession, 0)}%</div><div class="pa" style="width:${A.possession}%">${num(A.possession, 0)}%</div></div>
+        <div class="eyebrow" style="text-align:center">Владение мячом</div><div class="possn"><span class="h">${num(H.possession, 0)}%</span><span class="a">${num(A.possession, 0)}%</span></div><div class="poss"><div class="ph" style="width:${H.possession}%"></div><div class="pa" style="width:${A.possession}%"></div></div>
         ${[["xG", H.xg, A.xg, 2], ["Удары", H.shots, A.shots], ["В створ", H.shots_on_target, A.shots_on_target], ["Пасы", H.passes, A.passes], ["Угловые", H.corners, A.corners], ["Жёлтые", hs.yellowCards, as.yellowCards]].map(([l, a, b, d]) => vsRow(l, a, b, d)).join("")}
       </div></div>` : ""}
     </aside></div>`;
   xgRace(m, evs);
 }
+async function matchPolls(m) {
+  const box = $("#polls"); if (!box) return;
+  const vid = (() => { try { let v = localStorage.getItem("zvid"); if (!v) { v = crypto.randomUUID(); localStorage.setItem("zvid", v); } return v; } catch { return "anon-" + Math.random().toString(36).slice(2, 12); } })();
+  const mine = (() => { try { return JSON.parse(localStorage.getItem("zvotes:" + m.id) || "{}"); } catch { return {}; } })();
+  const P = [["winner", "Кто победит?", [["h", m.home.short_name], ["d", "Ничья"], ["a", m.away.short_name]]], ["btts", "Обе команды забьют?", [["y", "Да"], ["n", "Нет"]]], ["first", "Кто забьёт первым?", [["h", m.home.short_name], ["none", "Никто"], ["a", m.away.short_name]]]];
+  const open = m.status === "SCHEDULED";
+  let cnt = {};
+  const load = async () => { try { const { data } = await sb.rpc("poll_counts", { p_match: String(m.id) }); cnt = {}; (data || []).forEach((r) => ((cnt[r.poll] ||= {})[r.choice] = +r.n)); } catch {} };
+  const draw = () => { box.innerHTML = `<div class="section-gap"></div><div class="card"><div class="card-h">Прогнозы болельщиков</div><div class="card-b polls">${P.map(([k, t, o]) => { const c = cnt[k] || {}, tot = Object.values(c).reduce((a, b) => a + b, 0), voted = mine[k]; return `<div class="poll"><div class="pt"><span>${t}</span><small>${tot.toLocaleString("ru-RU")} голосов</small></div><div class="po">${o.map(([v, l]) => { const pc = tot ? Math.round(((c[v] || 0) / tot) * 100) : 0; const col = v === "h" ? "var(--home)" : v === "a" ? "var(--away)" : "var(--text-2)"; return `<button data-p="${k}" data-v="${v}" class="${voted === v ? "me" : ""}" ${voted || !open ? "disabled" : ""} style="--c:${col}"><span class="l">${esc(l)}</span><span class="n">${voted || !open ? pc + "%" : ""}</span><i style="width:${voted || !open ? pc : 0}%"></i></button>`; }).join("")}</div></div>`; }).join("")}${open ? "" : `<div class="muted" style="font-size:12px">Голосование закрыто — матч начался</div>`}</div></div>`; };
+  await load(); draw();
+  box.onclick = async (e) => { const b = e.target.closest("button[data-p]"); if (!b || b.disabled) return; const k = b.dataset.p, v = b.dataset.v; mine[k] = v; try { localStorage.setItem("zvotes:" + m.id, JSON.stringify(mine)); } catch {} const { error } = await sb.from("poll_votes").insert({ match_id: String(m.id), poll: k, choice: v, voter: vid }); if (error && error.code !== "23505") { delete mine[k]; toast("Не удалось проголосовать"); } await load(); draw(); };
+}
+function momentum(m, evs) {
+  const W = 3, N = 32, hv = Array(N).fill(0), av = Array(N).fill(0), end = Math.max(90, ...evs.map((e) => e.minute || 0));
+  let any = 0;
+  for (const e of evs) {
+    if (!["goal", "penalty_goal", "shot_on", "shot_off", "shot_blocked", "woodwork"].includes(e.type)) continue;
+    const i = Math.min(N - 1, Math.floor((e.minute || 0) / W)); const w = (+e.raw?.xg || 0.05) + (e.type === "goal" || e.type === "penalty_goal" ? 0.3 : 0);
+    if (e.team_id === m.home_team_id) hv[i] += w; else if (e.team_id === m.away_team_id) av[i] += w; any++;
+  }
+  if (!any) return "";
+  const mx = Math.max(0.3, ...hv, ...av), bw = 100 / N;
+  const bars = hv.map((v, i) => { const hh = (v / mx) * 44, ah = (av[i] / mx) * 44; return `<rect x="${i * bw + 0.3}" y="${50 - hh}" width="${bw - 0.6}" height="${hh}" rx=".6" fill="var(--home)"/><rect x="${i * bw + 0.3}" y="50" width="${bw - 0.6}" height="${ah}" rx=".6" fill="var(--away)"/>`; }).join("");
+  return `<div class="card"><div class="card-h">Моментум матча</div><div class="card-b"><svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:120px;display:block"><line x1="0" y1="50" x2="100" y2="50" stroke="var(--line)" stroke-width=".4" vector-effect="non-scaling-stroke"/><line x1="${(45 / (N * W)) * 100}" y1="0" x2="${(45 / (N * W)) * 100}" y2="100" stroke="var(--line)" stroke-dasharray="2" stroke-width=".4" vector-effect="non-scaling-stroke"/>${bars}</svg><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-top:6px"><span style="color:var(--home);font-weight:700">${esc(m.home.short_name)}</span><span>0' · ПЕР · 90'</span><span style="color:var(--away);font-weight:700">${esc(m.away.short_name)}</span></div></div></div><div class="section-gap"></div>`;
+}
 function vsRow(l, a, b, d = 0, invert = false) {
   const va = +a || 0, vb = +b || 0; const ha = invert ? va < vb : va > vb, hb = invert ? vb < va : vb > va;
-  return `<div class="vs-row"><b><span class="chip-num ${ha ? "lead-h" : ""}">${num(a, d)}</span></b><span class="c">${l}</span><b style="text-align:right"><span class="chip-num ${hb ? "lead-a" : ""}">${num(b, d)}</span></b></div>`;
+  return `<div class="vs-row"><b class="${ha ? "lh" : ""}">${num(a, d)}</b><span class="c">${l}</span><b class="${hb ? "la" : ""}" style="text-align:right">${num(b, d)}</b></div>`;
 }
 function xgRace(m, evs) {
   const el = $("#xgRace"); if (!el) return;
@@ -834,18 +864,38 @@ async function matchPreview(m, box) {
     <div class="card"><div class="card-h">Форма: ${esc(m.away.name)}<span class="more">${formHtml(am.map((x) => resultFor(x, m.away_team_id)).reverse())}</span></div>${am.map((x) => matchRow(x, { showDate: true })).join("")}<div style="height:8px"></div></div></div>
     ${sH && sA ? `<div class="section-gap"></div><div class="card"><div class="card-h">Сравнение по таблице</div><div class="card-b">${vsRow("Место", sH.position, sA.position, 0, true)}${vsRow("Очки", sH.points, sA.points)}${vsRow("Забито", sH.goals_for, sA.goals_for)}${vsRow("Пропущено", sH.goals_against, sA.goals_against, 0, true)}</div></div>` : ""}`;
 }
-function matchStats({ m, H, A }, box) {
+function matchStats({ m, H, A, evs }, box) {
   if (!H || !A) { box.innerHTML = noData("Нет данных"); return; }
   const h = H.raw?.s || {}, a = A.raw?.s || {};
-  const rows = [["Ожидаемые голы (xG)", H.xg, A.xg, 2], ["Удары", h.totalShots, a.totalShots], ["Удары в створ", h.shotsOnTarget, a.shotsOnTarget], ["Заблокированные удары", h.blockedShots, a.blockedShots], ["Пенальти", h.penaltyKickShots, a.penaltyKickShots],
-    ["__Пасы"], ["Пасы", h.totalPasses, a.totalPasses], ["Точные пасы", h.accuratePasses, a.accuratePasses], ["Точность паса, %", H.pass_accuracy, A.pass_accuracy, 1], ["Длинные передачи", h.totalLongBalls, a.totalLongBalls], ["Точные длинные", h.accurateLongBalls, a.accurateLongBalls], ["Навесы", h.totalCrosses, a.totalCrosses], ["Точные навесы", h.accurateCrosses, a.accurateCrosses],
-    ["__Оборона"], ["Отборы", h.totalTackles, a.totalTackles], ["Успешные отборы", h.effectiveTackles, a.effectiveTackles], ["Перехваты", h.interceptions, a.interceptions], ["Выносы", h.totalClearance, a.totalClearance], ["Сейвы", h.saves, a.saves],
-    ["__Дисциплина"], ["Фолы", h.foulsCommitted, a.foulsCommitted], ["Угловые", h.wonCorners, a.wonCorners], ["Офсайды", h.offsides, a.offsides], ["Жёлтые карточки", h.yellowCards, a.yellowCards], ["Красные карточки", h.redCards, a.redCards]];
+  const pc = (x, y) => (+y ? (+x / +y) * 100 : null);
+  const rows = [["__Обзор"], ["Ожидаемые голы (xG)", H.xg, A.xg, 2], ["Удары", h.totalShots, a.totalShots], ["Угловые", h.wonCorners, a.wonCorners], ["Фолы", h.foulsCommitted, a.foulsCommitted, 0, 1], ["Офсайды", h.offsides, a.offsides, 0, 1], ["Жёлтые карточки", h.yellowCards, a.yellowCards, 0, 1], ["Красные карточки", h.redCards, a.redCards, 0, 1],
+    ["__Удары"], ["Удары в створ", h.shotsOnTarget, a.shotsOnTarget], ["Мимо", (h.totalShots - h.shotsOnTarget - h.blockedShots) || null, (a.totalShots - a.shotsOnTarget - a.blockedShots) || null], ["Заблокированные", h.blockedShots, a.blockedShots], ["Удары в штрафной", h.shotsInsideBox ?? h.shotsIBox, a.shotsInsideBox ?? a.shotsIBox], ["Штанга/перекладина", h.hitWoodwork ?? h.woodworkHit, a.hitWoodwork ?? a.woodworkHit], ["Пенальти", h.penaltyKickShots, a.penaltyKickShots], ["Точность ударов, %", pc(h.shotsOnTarget, h.totalShots), pc(a.shotsOnTarget, a.totalShots), 0], ["xG за удар", pc(H.xg, h.totalShots) / 100, pc(A.xg, a.totalShots) / 100, 2],
+    ["__Пасы"], ["Пасы", h.totalPasses, a.totalPasses], ["Точные пасы", h.accuratePasses, a.accuratePasses], ["Точность паса, %", H.pass_accuracy, A.pass_accuracy, 0], ["Длинные передачи", h.totalLongBalls, a.totalLongBalls], ["Точные длинные", h.accurateLongBalls, a.accurateLongBalls], ["Навесы", h.totalCrosses, a.totalCrosses], ["Точные навесы", h.accurateCrosses, a.accurateCrosses], ["Передачи в штрафную", h.passesIntoBox, a.passesIntoBox], ["Вбрасывания", h.throwIns, a.throwIns],
+    ["__Единоборства"], ["Единоборства выиграно", h.duelsWon, a.duelsWon], ["Верховые выиграно", h.aerialsWon ?? h.aerialDuelsWon, a.aerialsWon ?? a.aerialDuelsWon], ["Дриблинг", h.takeOnsWon ?? h.dribblesWon, a.takeOnsWon ?? a.dribblesWon], ["Потери мяча", h.possessionLost ?? h.dispossessed, a.possessionLost ?? a.dispossessed, 0, 1],
+    ["__Оборона"], ["Отборы", h.totalTackles, a.totalTackles], ["Успешные отборы", h.effectiveTackles, a.effectiveTackles], ["Перехваты", h.interceptions, a.interceptions], ["Выносы", h.totalClearance, a.totalClearance], ["Блок-шоты", h.shotsBlocked ?? h.blockedShotsDef, a.shotsBlocked ?? a.blockedShotsDef],
+    ["__Вратарь"], ["Сейвы", h.saves, a.saves], ["Предотвращено голов", (A.xg ?? 0) - (a.goalsConceded ?? 0) || null, (H.xg ?? 0) - (h.goalsConceded ?? 0) || null, 2]];
+  const row = ([l, x, y, d, inv]) => { if (x == null && y == null) return ""; const vx = +x || 0, vy = +y || 0, t = vx + vy || 1, lead = vx === vy ? "" : (inv ? vx < vy : vx > vy) ? "h" : "a"; return `<div class="statrow ${lead}"><div class="lbl"><b class="${lead === "h" ? "chip-num lead-h" : ""}">${num(x, d || 0)}</b><span>${l}</span><b class="${lead === "a" ? "chip-num lead-a" : ""}">${num(y, d || 0)}</b></div><div class="bars"><div class="bh"><i style="width:${(vx / t) * 100}%"></i></div><div class="ba"><i style="width:${(vy / t) * 100}%"></i></div></div></div>`; };
+  let body = "", sec = "", buf = "";
+  for (const r of rows) { if (r[0].startsWith("__")) { if (buf) body += sec + buf; sec = `<div class="statsec">${r[0].slice(2)}</div>`; buf = ""; } else buf += row(r); }
+  if (buf) body += sec + buf;
   box.innerHTML = `<div class="card" style="max-width:760px;margin:0 auto"><div class="card-b" style="padding-top:18px">
-    <div class="team-line" style="padding:0 0 12px">${crest(m.home)}<span class="eyebrow">Владение мячом</span>${crest(m.away)}</div>
-    <div class="poss"><div class="ph" style="width:${H.possession}%">${num(H.possession, 0)}%</div><div class="pa" style="width:${A.possession}%">${num(A.possession, 0)}%</div></div>
-    ${rows.map(([l, x, y, d]) => { if (l.startsWith("__")) return `<div class="card-h" style="padding:20px 0 4px">${l.slice(2)}</div>`; if (x == null && y == null) return ""; const vx = +x || 0, vy = +y || 0, t = vx + vy || 1; return `<div class="statrow"><div class="lbl"><b><span class="chip-num ${vx > vy ? "lead-h" : ""}">${num(x, d || 0)}</span></b><span>${l}</span><b><span class="chip-num ${vy > vx ? "lead-a" : ""}">${num(y, d || 0)}</span></b></div><div class="bars"><div class="bh"><i style="width:${(vx / t) * 100}%"></i></div><div class="ba"><i style="width:${(vy / t) * 100}%"></i></div></div></div>`; }).join("")}
-  </div></div>`;
+    <div class="team-line" style="padding:0 0 4px">${crest(m.home)}<span class="eyebrow">Владение мячом</span>${crest(m.away)}</div>
+    <div class="possn"><span class="h">${num(H.possession, 0)}%</span><span class="a">${num(A.possession, 0)}%</span></div>
+    <div class="poss"><div class="ph" style="width:${H.possession}%"></div><div class="pa" style="width:${A.possession}%"></div></div>
+    ${body}</div></div><div class="section-gap"></div><div id="shotsbox"></div>`;
+  if (evs?.some((e) => e.raw?.x != null)) matchShots({ m, evs, H, A }, $("#shotsbox"));
+}
+function matchComm({ m, evs }, box) {
+  const T = { goal: "⚽ Гол!", penalty_goal: "⚽ Гол с пенальти!", own_goal: "⚽ Автогол", yellow: "🟨 Жёлтая карточка", red: "🟥 Красная карточка", sub: "🔁 Замена", penalty_missed: "Пенальти не реализован", var: "VAR", shot_on: "Удар в створ", shot_off: "Удар мимо", shot_blocked: "Удар заблокирован", woodwork: "Штанга/перекладина" };
+  const key = new Set(["goal", "penalty_goal", "own_goal", "yellow", "red", "penalty_missed", "var"]);
+  let only = false;
+  const draw = () => {
+    const l = evs.filter((e) => e.type !== "period" && T[e.type] && (!only || key.has(e.type))).slice().reverse();
+    $("#cm").innerHTML = l.map((e) => { const n = e.raw?.names || []; const tm = e.team_id === m.home_team_id ? m.home : e.team_id === m.away_team_id ? m.away : null; return `<div class="comm ${key.has(e.type) ? "key" : ""}"><span class="mn">${esc(e.raw?.clock || (e.minute ?? "") + "'")}</span>${tm ? crest(tm, "crest sm") : "<span></span>"}<div><b>${T[e.type]}</b> ${e.type === "sub" ? `${esc(n[0] || "")} ← ${esc(n[1] || "")}` : esc(n[0] || "")}${e.detail ? `<div class="muted" style="font-size:13px">${esc(e.detail.slice(0, 220))}</div>` : ""}</div></div>`; }).join("") || `<div class="empty-note" style="padding:24px;text-align:center">Комментариев пока нет</div>`;
+  };
+  box.innerHTML = `<div class="card"><div class="feed-tools"><div class="seg" id="cmseg"><button data-k="0" class="on">Все</button><button data-k="1">Ключевые</button></div></div><div id="cm"></div></div>`;
+  $("#cmseg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; only = b.dataset.k === "1"; $$("#cmseg button").forEach((x) => x.classList.toggle("on", x === b)); draw(); });
+  draw();
 }
 function depthOf(abbr, pos) {
   const a = (abbr || "").toUpperCase(), p = (pos || "").toLowerCase();
