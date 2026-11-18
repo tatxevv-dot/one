@@ -38,3 +38,9 @@
 .po button i{position:absolute;left:0;bottom:-1px;height:2px;background:var(--c);opacity:.4;transition:width .5s}
 .po button.me i{opacity:1}.po button.me .l{font-weight:700;color:var(--c)}
 .po button:disabled{cursor:default}.po .n{color:var(--text-2);font-variant-numeric:tabular-nums}
+/* зазоры между плашками */
+#lbody>.card,#lbody>.section-gap{margin-bottom:var(--gap)}
+#lbody>.card+.section-gap{height:0;margin:0}
+.wrap>.card+.card,.wrap>.card+#mcontent,.wrap>.card+.localnav{margin-top:var(--gap)}
+.cols>main>.card+.card,.cols>main>.card+.section-gap+.card{margin-top:var(--gap);border-radius:var(--r-lg,16px);border-top:0}
+.cols>main>.card:has(+.card),.cols>main>.card:has(+.section-gap+.card){border-radius:var(--r-lg,16px)}
