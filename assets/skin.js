@@ -37,7 +37,19 @@
         .map((p) => `<a class="brow" href="#/player/${p.player_id}"><span class="no">${esc(p.raw?.jersey || "")}</span>${avatar(p.player_id, p.player?.name)}<span class="grow">${esc(p.player?.name)}<br><small>${esc(p.raw?.pos || "")}${p.raw?.subIn ? ` · <span style="color:var(--win)">↑ ${p.raw.inM}'</span>` : ""}</small></span>${p.minutes ? ratingChip(p.rating) : ""}</a>`).join("");
       return rows ? `<div class="lu-sub">Запасные · ${esc(t.short_name || t.name)}</div><div class="bench1">${rows}</div>` : "";
     };
-    box.innerHTML = `<div class="lu card">${head(m.away, m.away_team_id)}<div class="lu-pitch"><div class="lu-half">${halfLines}${half(m.away_team_id, true)}</div><div class="lu-half flip">${halfLines}${half(m.home_team_id, false)}</div></div>${head(m.home, m.home_team_id)}${bench(m.away, m.away_team_id)}${bench(m.home, m.home_team_id)}</div>`;
+    const halfH = (tid, home) => {
+      const f = (tid === m.home_team_id ? H : A)?.raw?.formation;
+      const lines = layoutXI(pms.filter((p) => p.team_id === tid), f).filter((l) => l.length);
+      return lines.map((ln, li) => {
+        const d0 = 6 + (li / Math.max(1, lines.length - 1)) * 40, x = home ? d0 : 100 - d0;
+        return ln.map((p, pi) => { const y0 = 8 + ((pi + 0.5) / ln.length) * 84; return dot(p, x, home ? y0 : 100 - y0); }).join("");
+      }).join("");
+    };
+    const tc = (t) => { const c = teamColor(t); return c ? fitColor(c) : "#8aa0b8"; };
+    const hh = (t, tid) => { const f = (tid === m.home_team_id ? H : A)?.raw?.formation; const a = avg(pms.filter((p) => p.team_id === tid && p.raw?.starter)); return `<a class="lu-hh" href="#/team/${t.id}">${crest(t, "crest sm")}<b>${esc(t.name)}</b><span class="fm">${esc(f || "")}</span>${a ? `<span class="rating ${ratingCls(a)}">${a.toFixed(1)}</span>` : ""}</a>`; };
+    box.innerHTML = `<div class="lu luw card" style="--hc:${tc(m.home)};--ac:${tc(m.away)}"><div class="lu-hz"><div class="lu-hhead">${hh(m.home, m.home_team_id)}${hh(m.away, m.away_team_id)}</div><div class="lu-hpitch"><svg class="hl" viewBox="0 0 105 68" preserveAspectRatio="none"><g fill="none" stroke="var(--pitch-line)" stroke-width=".3"><rect x="1" y="1" width="103" height="66"/><line x1="52.5" y1="1" x2="52.5" y2="67"/><circle cx="52.5" cy="34" r="9.15"/><rect x="1" y="13.85" width="16.5" height="40.3"/><rect x="1" y="24.85" width="5.5" height="18.3"/><rect x="87.5" y="13.85" width="16.5" height="40.3"/><rect x="98.5" y="24.85" width="5.5" height="18.3"/></g></svg>${halfH(m.home_team_id, true).replace(/class="pl"/g, 'class="pl h"')}${halfH(m.away_team_id, false).replace(/class="pl"/g, 'class="pl a"')}</div></div>
+      <div class="lu-vt">${head(m.away, m.away_team_id)}<div class="lu-pitch"><div class="lu-half">${halfLines}${half(m.away_team_id, true).replace(/class="pl"/g, 'class="pl a"')}</div><div class="lu-half flip">${halfLines}${half(m.home_team_id, false).replace(/class="pl"/g, 'class="pl h"')}</div></div>${head(m.home, m.home_team_id)}</div>
+      <div class="lu-bench">${bench(m.home, m.home_team_id)}${bench(m.away, m.away_team_id)}</div></div>`;
   };
 })();
 
