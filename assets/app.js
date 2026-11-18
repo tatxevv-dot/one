@@ -296,7 +296,8 @@ async function viewHome(params) {
       run(sb.from("matches").select("utc_date").gte("utc_date", dayEnd.toISOString()).order("utc_date").limit(1)),
     ]);
     const el = $("#nearBtns"); if (!el) return;
-    const btn = (r, t) => r?.[0] ? `<a class="btn ${t === "next" ? "" : "ghost"}" href="#/?d=${iso(new Date(r[0].utc_date))}">${t === "next" ? "Ближайшие матчи · " : "Прошлый тур · "}${fmtDate(r[0].utc_date, { day: "numeric", month: "long" })}</a>` : "";
+    const arr = (d) => `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+    const btn = (r, t) => { if (!r?.[0]) return ""; const dt = fmtDate(r[0].utc_date, { day: "numeric", month: "long" }), label = (t === "next" ? "Ближайшие матчи · " : "Прошлый тур · ") + dt; return `<a class="near ${t}" href="#/?d=${iso(new Date(r[0].utc_date))}" title="${label}" aria-label="${label}">${t === "next" ? `<span>${dt}</span>${arr("M9 6l6 6-6 6")}` : `${arr("M15 6l-6 6 6 6")}<span>${dt}</span>`}</a>`; };
     el.innerHTML = btn(pv, "prev") + btn(nx, "next");
   };
   const load = async () => {
